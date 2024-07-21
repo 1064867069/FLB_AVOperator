@@ -4,8 +4,8 @@
 #include <qlogging.h>
 
 
-FAVFileReader::FAVFileReader(QObject* p) :QObject(p), m_upAudioBuffer(std::make_unique<FAVFrameBuffer>(1000)),
-m_upVideoBuffer(std::make_unique<FAVFrameBuffer>(200))
+FAVFileReader::FAVFileReader(QObject* p) :QObject(p), m_upAudioBuffer(std::make_unique<FAVFrameBuffer>(10)),
+m_upVideoBuffer(std::make_unique<FAVFrameBuffer>(5))
 {
 
 }
@@ -33,6 +33,7 @@ bool FAVFileReader::openFile(const QString& fpath)
 		qCritical() << "Can't find stream information" << '\n';
 		return false;
 	}
+
 	m_procs.m_pVDecCtx = nullptr; // 视频解码器的实例
 	m_procs.m_pSrcVideo = nullptr;
 	// 找到视频流的索引
@@ -66,6 +67,9 @@ bool FAVFileReader::openFile(const QString& fpath)
 		m_info.m_aspect_ratio = m_procs.m_pSrcVideo->codecpar->sample_aspect_ratio;
 		m_info.m_pixFmt = m_procs.m_pVDecCtx->pix_fmt;
 		qDebug() << "frame rate of video = " << m_info.m_avgfRate;
+
+		m_vDuration = m_procs.m_pSrcVideo->duration;
+		//v_dur = av_q2d(m_procs.m_pSrcVideo->time_base) * m_vDuration;
 	}
 	// 找到音频流的索引
 	int audio_index = av_find_best_stream(m_procs.m_pInFmtCtx, AVMEDIA_TYPE_AUDIO, -1, -1, nullptr, 0);
@@ -97,6 +101,9 @@ bool FAVFileReader::openFile(const QString& fpath)
 		m_info.m_sampleRate = m_procs.m_pADecCtx->sample_rate;
 		m_info.m_frameSize = m_procs.m_pADecCtx->frame_size;
 		m_info.m_nChannel = m_info.m_chLayout.nb_channels;
+
+		m_aDuration = m_procs.m_pSrcAudio->duration;
+		//a_dur = av_q2d(m_procs.m_pSrcAudio->time_base) * m_aDuration;
 	}
 
 	if (m_info.m_aIndx < 0 && m_info.m_vIndx < 0)
@@ -105,7 +112,9 @@ bool FAVFileReader::openFile(const QString& fpath)
 		return false;
 	}
 
+	m_info.m_filePath = fpath;
 	m_info.m_isOpen = true;
+	this->getPreciousDurationSecond();
 	return true;
 }
 
@@ -124,6 +133,20 @@ FrameSPtr FAVFileReader::popVideoFrame()
 	return m_upVideoBuffer->popFrame();
 }
 
+void FAVFileReader::seekSecond(double sec)
+{
+	if (sec < 0)
+		return;
+
+	{
+		QMutexLocker locker(&m_mutex);
+
+		m_seekSecond = sec;
+		m_upAudioBuffer->clear();
+		m_upVideoBuffer->clear();
+	}
+}
+
 void FAVFileReader::stop()
 {
 	if (!m_stop)
@@ -138,9 +161,53 @@ void FAVFileReader::stop()
 			m_condStop.wait(&m_mutex);
 		}
 
-
 		this->reset();
 	}
+}
+
+double FAVFileReader::getPreciousDurationSecond()
+{
+	//目前预设该函数被调用时，并未处于解码状态
+	if ((m_info.m_aIndx < 0 && m_info.m_vIndx < 0) || !m_info.m_isOpen || m_decoding)
+		return -1;
+
+	auto pts2sec = [](AVRational tb, int64_t d)->double {return av_q2d(tb) * d; };
+	double a_dur = m_info.m_aIndx >= 0 ? pts2sec(m_procs.m_pSrcAudio->time_base, m_aDuration) : 0;
+	double v_dur = m_info.m_vIndx >= 0 ? pts2sec(m_procs.m_pSrcVideo->time_base, m_vDuration) : 0;
+
+	this->seekSecond(std::max(a_dur, v_dur));
+	if (!this->checkAndSeek())
+	{
+		//无法跳到最后，那么可能真实较短
+		this->seekSecond(0);
+		this->checkAndSeek();
+	}
+
+	AVPacket* packet = av_packet_alloc(); // 分配一个数据包
+	m_aDuration = 0;
+	m_vDuration = 0;
+	while (av_read_frame(m_procs.m_pInFmtCtx, packet) >= 0)
+	{
+		if (packet->stream_index == m_info.m_aIndx)
+		{
+			m_aDuration = std::max(m_aDuration, packet->pts + packet->duration);
+		}
+		else
+		{
+			m_vDuration = std::max(m_vDuration, packet->pts + packet->duration);
+		}
+	}
+	av_packet_free(&packet);
+	a_dur = m_info.m_aIndx >= 0 ? pts2sec(m_procs.m_pSrcAudio->time_base, m_aDuration) : 0;
+	v_dur = m_info.m_vIndx >= 0 ? pts2sec(m_procs.m_pSrcVideo->time_base, m_vDuration) : 0;
+	emit durationSecondChanged(std::max(a_dur, v_dur));
+
+	qDebug() << a_dur << v_dur;
+
+	this->seekSecond(0);
+	this->checkAndSeek();
+	//m_seekSecond = -1;
+	return std::max(a_dur, v_dur);
 }
 
 void FAVFileReader::reset()noexcept
@@ -148,17 +215,63 @@ void FAVFileReader::reset()noexcept
 	QMutexLocker locker(&m_mutex);
 	m_procs.reset();
 	m_info.reset();
+
+	m_seekSecond = -1;
+	m_aDuration = 0;
+	m_vDuration = 0;
+	m_decoding = false;
+}
+
+bool FAVFileReader::decoding()const
+{
+	QMutexLocker locker(&m_mutex);
+	return m_decoding;
 }
 
 void FAVFileReader::waitNotBeyond()
 {
-	if (m_upAudioBuffer->isBeyond() || m_upVideoBuffer->isBeyond())
+	while (m_upAudioBuffer->isBeyond() || m_upVideoBuffer->isBeyond())
 	{
-		m_upAudioBuffer->waitNotBeyond();
-		m_upVideoBuffer->waitNotBeyond();
+		//若另一个缓冲区空了，先break
 
+		if (m_info.m_vIndx < 0 || !m_upVideoBuffer->isEmpty())
+			m_upAudioBuffer->waitNotBeyond();
+		else
+			break;
+
+		if (m_info.m_aIndx < 0 || !m_upAudioBuffer->isEmpty())
+			m_upVideoBuffer->waitNotBeyond();
+		else
+			break;
 
 	}
+}
+
+bool FAVFileReader::checkAndSeek()
+{
+	if (m_seekSecond >= 0)
+	{
+		QMutexLocker locker(&m_mutex);
+
+		if (av_seek_frame(m_procs.m_pInFmtCtx, -1, m_seekSecond * AV_TIME_BASE, AVSEEK_FLAG_BACKWARD) < 0)
+		{
+			m_seekSecond = -1;
+			emit seekFinished();
+			return false;
+		}
+
+		if (m_info.m_aIndx >= 0)
+			avcodec_flush_buffers(m_procs.m_pADecCtx);
+		if (m_info.m_vIndx >= 0)
+			avcodec_flush_buffers(m_procs.m_pVDecCtx);
+
+		m_seekSecond = -1;
+		m_decoding = true;
+
+		emit seekFinished();
+		return true;
+	}
+	return false;
 }
 
 void FAVFileReader::decodePacket(AVCodecContext* dec_ctx, AVPacket* pkt, AVStream* strm)
@@ -208,6 +321,7 @@ void FAVFileReader::readFrames()
 		}
 
 		m_stop = false;
+		m_decoding = true;
 	}
 
 	qDebug() << "解码开始！";
@@ -221,6 +335,9 @@ void FAVFileReader::readFrames()
 			if (m_stop)
 				break;
 
+			if (this->checkAndSeek())
+				continue;
+
 			if (packet->stream_index == m_info.m_aIndx)
 			{
 				this->decodePacket(m_procs.m_pADecCtx, packet, m_procs.m_pSrcAudio);
@@ -231,13 +348,21 @@ void FAVFileReader::readFrames()
 				this->decodePacket(m_procs.m_pVDecCtx, packet, m_procs.m_pSrcVideo);
 				//m_upVideoBuffer->pushFrame(pf);
 			}
-
-
 		}
 
 		if (m_stop)
 		{
+			m_decoding = false;
 			break;
+		}
+		else if (checkAndSeek())
+		{
+			continue;
+		}
+		else
+		{
+			m_decoding = false;
+			emit decodeEnd();
 		}
 	}
 	av_packet_free(&packet);

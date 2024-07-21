@@ -23,7 +23,7 @@ extern "C"
 
 struct FAVInfo
 {
-	const QString m_filePath;//文件路径
+	QString m_filePath;//文件路径
 
 	int m_vIndx = -1;//视频流索引
 	int m_aIndx = -1;//音频流索引
@@ -102,6 +102,8 @@ public:
 
 	void processFrame(FrameSPtr);
 
+	void reset();
+
 	int size()const;
 
 	int objWidth()const;
@@ -134,6 +136,8 @@ public:
 	FAVFrameBuffer(size_t cap);
 
 	bool isBeyond()const;
+
+	bool isEmpty()const;
 
 	void waitNotBeyond()const;
 
@@ -172,11 +176,25 @@ public:
 
 	FrameSPtr popVideoFrame();
 
+	void seekSecond(double);
+
 	const FAVInfo* getInfo()const;
 
 	void reset()noexcept;
 
+	bool decoding()const;
+signals:
+	void durationSecondChanged(double);
+
+	void decodeEnd();
+
+	void seekFinished();
+
+
 private:
+	double getPreciousDurationSecond();
+
+	bool checkAndSeek();
 
 	void waitNotBeyond();
 
@@ -185,13 +203,19 @@ private:
 	BufferUPtr m_upAudioBuffer = nullptr;
 	BufferUPtr m_upVideoBuffer = nullptr;
 
-	QMutex m_mutex;
+	mutable QMutex m_mutex;
 	QWaitCondition m_condStop;
 
 	FAVProcessors m_procs;
 	FAVInfo m_info;
 
+	int64_t m_aDuration = AV_NOPTS_VALUE;
+	int64_t m_vDuration = AV_NOPTS_VALUE;
+
+	double m_seekSecond = -1;
+
 	bool m_stop = true;
+	bool m_decoding = false;
 };
 
 using ReaderSPtr = std::shared_ptr<FAVFileReader>;
@@ -227,7 +251,10 @@ private:
 	int m_outBufferSize;
 	AVSampleFormat m_outSampleFmt = AV_SAMPLE_FMT_S16;
 
+	bool m_isPaused = true;
+
 	mutable QMutex m_mutex;
+	mutable QMutex m_mutexPause;
 private:
 	AudioSDLPlayer(QObject* p = nullptr);
 	AudioSDLPlayer(const AudioSDLPlayer&) = delete;
@@ -237,7 +264,7 @@ private:
 	void resetNoLock();
 
 	bool changeReader(ReaderSPtr);
-	void unbindReader(ReaderSPtr);
+	void unbindReader(const ReaderSPtr&);
 
 	static void fill_audio(void* para, uint8_t* stream, int len);
 };
@@ -258,24 +285,48 @@ public:
 
 	virtual ~FAVPlayer();
 
-	void openFile(const QString&);
+	bool openFile(const QString&);
 
 	void stop();
 
-	void pause(bool);
+	//void pause(bool);
+
+	void pause();
+
+	void playCont();
 
 	PlayState state()const;
 
 	double getCurSecond()const;
 
+	double getDuration()const;
+
+	bool getAudioEnd()const;
+
+public slots:
+	void seekProp(double);
+
 signals:
 	void secondChanged(double);
 
+	void durationChanged(double);
+
 	void started();
+
+	void stopped();
 
 private slots:
 	void setCurSecond(double);
 
+	void setDuration(double);
+
+	void onSeekFinished();
+
+	void onAudioEnd();
+
+	void onVideoEnd();
+
+	void check_stop();
 
 private:
 	VideoOpenGLPlayer* m_pVideoPlayer = nullptr;
@@ -285,7 +336,11 @@ private:
 	QThread m_threadDecode;
 
 	qint64 m_lastCntTime = -1;
+	double m_durationSecond = -1;
 	mutable double m_curSecond = 0;
+
+	bool m_audioEnd = true;
+	bool m_videoEnd = true;
 
 	friend class AudioSDLPlayer;
 };

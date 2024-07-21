@@ -13,6 +13,7 @@ class FAVPlayer;
 class FAVFileReader;
 class FFrame;
 class VideoFrameProcesser;
+class PlayBtmBar;
 
 
 using ReaderSPtr = std::shared_ptr<FAVFileReader>;
@@ -33,27 +34,53 @@ public:
 
 public slots:
 	bool initProcessor();
+
 	void playFrame();
+
 	void pause(bool);
 
+	void onAVStop();
 
+	void onPauseSeek();
+
+	void refreshHide();
+
+	//重置帧且暂停
+	void onSeek();
+
+	void hideBtmWidget();
+
+	PlayBtmBar* getPlayBtmWidget();
 protected slots:
 	void initializeGL() Q_DECL_OVERRIDE;
 	void resizeGL(int window_W, int window_H) Q_DECL_OVERRIDE;
 	void paintGL() Q_DECL_OVERRIDE;
 
+	void mouseMoveEvent(QMouseEvent* event)Q_DECL_OVERRIDE;
+	void resizeEvent(QResizeEvent* event)Q_DECL_OVERRIDE;
+	bool eventFilter(QObject* watched, QEvent* event)Q_DECL_OVERRIDE;
+
+	void resetBtmWidget();
 private:
 	void resetGLVertex(int window_W, int window_H);
 
+signals:
+	void videoEnd();
+
 private:
+
 	ReaderSPtr m_spReader;
 	FrameSPtr m_spCurFrame;
 	FrameSPtr m_spNextFrame;
 
 	FAVPlayer* m_pPlayer;
+	PlayBtmBar* m_pPlayBtmWidget;
 	VProcessorUPtr m_upVideoProcessor;
-	QTimer m_timer;
 
+	QTimer m_timerFramePlay;
+
+	QTimer m_timerBtmHide;
+	qint64 m_lastMoveSecond;
 
 	// 用于OpenGL绘制图像
 	GLuint m_textureUniformY; // y纹理数据位置

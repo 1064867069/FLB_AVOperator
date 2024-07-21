@@ -10,56 +10,55 @@ FAVPlayer::FAVPlayer(QObject* p) : QObject(p), m_spReader(std::make_shared<FAVFi
 	if (m_pVideoPlayer != nullptr)
 	{
 		m_pVideoPlayer->bindReader(m_spReader);
+		connect(m_pVideoPlayer, &VideoOpenGLPlayer::videoEnd, this, &FAVPlayer::onVideoEnd);
+		connect(this, &FAVPlayer::stopped, m_pVideoPlayer, &VideoOpenGLPlayer::onAVStop);
 	}
 
 	m_spReader->moveToThread(&m_threadDecode);
 	connect(this, &FAVPlayer::started, m_spReader.get(), &FAVFileReader::readFrames);
+	connect(m_spReader.get(), &FAVFileReader::durationSecondChanged, this, &FAVPlayer::setDuration);
+	connect(m_spReader.get(), &FAVFileReader::seekFinished, this, &FAVPlayer::onSeekFinished);
 	m_threadDecode.start();
 }
 
 FAVPlayer::~FAVPlayer()
 {
-	this->stop();
+	if (m_state != PlayState::Stop)
+		this->stop();
 	m_threadDecode.quit();
 	m_threadDecode.wait();
 }
 
-void FAVPlayer::openFile(const QString& filePath)
+bool FAVPlayer::openFile(const QString& filePath)
 {
-	if (filePath == m_spReader->getInfo()->m_filePath)
-		return;
+	if (filePath == m_spReader->getInfo()->m_filePath && m_spReader->getInfo()->m_isOpen)
+		return true;
 
 	this->stop();
 	if (!m_spReader->openFile(filePath))
 	{
 		qDebug() << __FUNCTION__ << filePath << " open failed!";
-		return;
+		return false;
 	}
 
+	auto info = m_spReader->getInfo();
 
-	//if (m_spReader->getInfo()->m_aIndx >= 0)
-	//{
-	//	auto audioPlayer = AudioSDLPlayer::getInstance();
-	//	//audioPlayer->changeReader(m_spReader);
-	//	if (!audioPlayer->audioOpen())
-	//	{
-	//		qDebug() << __FUNCTION__ << " audio player open failed!";
-	//		return;
-	//	}
-	//}
-
-	if (m_spReader->getInfo()->m_vIndx >= 0)
+	if (info->m_vIndx >= 0)
 	{
 		if (m_pVideoPlayer != nullptr)
 		{
 			if (!m_pVideoPlayer->initProcessor())
-				return;
+				return false;
 		}
 	}
 
 
 	emit started();
 	m_state = PlayState::Pause;
+	m_audioEnd = info->m_aIndx < 0;
+	m_videoEnd = info->m_vIndx < 0;
+
+	return true;
 }
 
 void FAVPlayer::stop()
@@ -69,45 +68,53 @@ void FAVPlayer::stop()
 
 	audioPlayer->unBindAVPlayer(this);
 
-	if (m_pVideoPlayer != nullptr)
-		m_pVideoPlayer->pause(true);
+	emit stopped();
+
+	m_curSecond = -1;
+	m_lastCntTime = AV_NOPTS_VALUE;
+	m_durationSecond = -1;
+	m_audioEnd = true;
+	m_videoEnd = true;
 
 	m_spReader->stop();
 
 }
 
-void FAVPlayer::pause(bool isPause)
+void FAVPlayer::pause()
 {
-	if (isPause)
+	if (m_state == PlayState::Play)
 	{
-		if (m_state == PlayState::Play)
-		{
-			m_state = PlayState::Pause;
+		m_state = PlayState::Pause;
 
-			auto audioPlayer = AudioSDLPlayer::getInstance();
-			audioPlayer->pause();
+		auto audioPlayer = AudioSDLPlayer::getInstance();
+		audioPlayer->pause();
 
-			if (m_pVideoPlayer != nullptr)
-				m_pVideoPlayer->pause(true);
+		if (m_pVideoPlayer != nullptr)
+			m_pVideoPlayer->pause(true);
 
-			this->getCurSecond(); //更新当前播放的时间
+		this->getCurSecond(); //更新当前播放的时间
 
-		}
 	}
-	else
+}
+
+void FAVPlayer::playCont()
+{
+	if (m_state == PlayState::Stop)
 	{
-		if (m_state == PlayState::Pause)
-		{
-			m_state = PlayState::Play;
+		this->openFile(m_spReader->getInfo()->m_filePath);
+	}
 
-			if (m_pVideoPlayer != nullptr)
-				m_pVideoPlayer->pause(false);
-			m_lastCntTime = QDateTime::currentMSecsSinceEpoch();
+	if (m_state == PlayState::Pause)
+	{
+		m_state = PlayState::Play;
 
-			auto audioPlayer = AudioSDLPlayer::getInstance();
-			audioPlayer->bindAVPlayer(this);
-			audioPlayer->cont();
-		}
+		if (m_pVideoPlayer != nullptr)
+			m_pVideoPlayer->pause(false);
+		m_lastCntTime = QDateTime::currentMSecsSinceEpoch();
+
+		auto audioPlayer = AudioSDLPlayer::getInstance();
+		audioPlayer->bindAVPlayer(this);
+		audioPlayer->cont();
 	}
 }
 
@@ -126,6 +133,56 @@ double FAVPlayer::getCurSecond()const
 	return m_curSecond;
 }
 
+double FAVPlayer::getDuration()const
+{
+	return m_durationSecond;
+}
+
+bool FAVPlayer::getAudioEnd()const
+{
+	return m_audioEnd;
+}
+
+void FAVPlayer::seekProp(double p)
+{
+	if (!m_spReader->getInfo()->m_isOpen)
+		return;
+
+	p = std::max(0.0, p);
+	p = std::min(1.0, p);
+
+	auto sdlPlayer = AudioSDLPlayer::getInstance();
+	sdlPlayer->pause();
+
+	if (m_pVideoPlayer != nullptr)
+		m_pVideoPlayer->onSeek();
+
+	m_spReader->seekSecond(m_durationSecond * p);
+
+	m_audioEnd = false;
+	if (m_state == PlayState::Play)
+	{
+		sdlPlayer->cont();
+		if (m_pVideoPlayer != nullptr)
+			m_pVideoPlayer->pause(false);
+	}
+	else if (m_state == PlayState::Pause)
+	{
+		if (m_pVideoPlayer != nullptr)
+			m_pVideoPlayer->onPauseSeek();
+	}
+}
+
+void FAVPlayer::onSeekFinished()
+{
+	if (m_state == PlayState::Play)
+	{
+		auto sdlPlayer = AudioSDLPlayer::getInstance();
+		sdlPlayer->cont();
+		m_pVideoPlayer->pause(false);
+	}
+}
+
 void FAVPlayer::setCurSecond(double cs)
 {
 	if (cs >= 0)
@@ -133,4 +190,31 @@ void FAVPlayer::setCurSecond(double cs)
 		m_curSecond = cs;
 		emit secondChanged(m_curSecond);
 	}
+}
+
+void FAVPlayer::setDuration(double d)
+{
+	if (d > 0)
+	{
+		m_durationSecond = d;
+		emit durationChanged(m_durationSecond);
+	}
+}
+
+void FAVPlayer::onAudioEnd()
+{
+	m_audioEnd = true;
+	this->check_stop();
+}
+
+void FAVPlayer::onVideoEnd()
+{
+	m_videoEnd = true;
+	this->check_stop();
+}
+
+void FAVPlayer::check_stop()
+{
+	if (m_audioEnd && m_videoEnd)
+		this->stop();
 }

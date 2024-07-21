@@ -25,25 +25,26 @@ QT_BEGIN_NAMESPACE
 class Ui_FLB_AVOperatorClass
 {
 public:
+    QWidget *centralWidget;
     QMenuBar *menuBar;
     QToolBar *mainToolBar;
-    QWidget *centralWidget;
     QStatusBar *statusBar;
 
     void setupUi(QMainWindow *FLB_AVOperatorClass)
     {
         if (FLB_AVOperatorClass->objectName().isEmpty())
             FLB_AVOperatorClass->setObjectName(QStringLiteral("FLB_AVOperatorClass"));
-        FLB_AVOperatorClass->resize(600, 400);
-        menuBar = new QMenuBar(FLB_AVOperatorClass);
-        menuBar->setObjectName(QStringLiteral("menuBar"));
-        FLB_AVOperatorClass->setMenuBar(menuBar);
-        mainToolBar = new QToolBar(FLB_AVOperatorClass);
-        mainToolBar->setObjectName(QStringLiteral("mainToolBar"));
-        FLB_AVOperatorClass->addToolBar(mainToolBar);
+        FLB_AVOperatorClass->resize(732, 553);
         centralWidget = new QWidget(FLB_AVOperatorClass);
         centralWidget->setObjectName(QStringLiteral("centralWidget"));
         FLB_AVOperatorClass->setCentralWidget(centralWidget);
+        menuBar = new QMenuBar(FLB_AVOperatorClass);
+        menuBar->setObjectName(QStringLiteral("menuBar"));
+        menuBar->setGeometry(QRect(0, 0, 732, 23));
+        FLB_AVOperatorClass->setMenuBar(menuBar);
+        mainToolBar = new QToolBar(FLB_AVOperatorClass);
+        mainToolBar->setObjectName(QStringLiteral("mainToolBar"));
+        FLB_AVOperatorClass->addToolBar(Qt::TopToolBarArea, mainToolBar);
         statusBar = new QStatusBar(FLB_AVOperatorClass);
         statusBar->setObjectName(QStringLiteral("statusBar"));
         FLB_AVOperatorClass->setStatusBar(statusBar);

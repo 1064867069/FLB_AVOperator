@@ -93,9 +93,18 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="audiosdlplayer.cpp" />
+    <ClCompile Include="avfilemanager.cpp" />
     <ClCompile Include="avplayer.cpp" />
+    <ClCompile Include="interfaces.cpp" />
+    <ClCompile Include="playbtmbar.cpp" />
+    <ClCompile Include="playlistwidget.cpp" />
+    <ClCompile Include="playtable.cpp" />
+    <ClCompile Include="str_utils.cpp" />
+    <ClCompile Include="timeobservers.cpp" />
+    <ClCompile Include="uicomponents.cpp" />
     <ClCompile Include="videoopenglplayer.cpp" />
     <QtRcc Include="flb_avoperator.qrc" />
+    <QtRcc Include="playbtm.qrc" />
     <QtUic Include="flb_avoperator.ui" />
     <QtMoc Include="flb_avoperator.h" />
     <ClCompile Include="avcmpn.cpp" />
@@ -110,6 +119,24 @@
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="videoopenglplayer.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="playbtmbar.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="uicomponents.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="interfaces.h" />
+    <QtMoc Include="timeobservers.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="avfilemanager.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="playlistwidget.h" />
+    <QtMoc Include="playtable.h" />
+    <ClInclude Include="str_utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">

@@ -1,4 +1,8 @@
 <RCC>
-    <qresource prefix="FLB_AVOperator">
-    </qresource>
+  <qresource prefix="FLB_AVOperator">
+    <file>icons/lastAV.png</file>
+    <file>icons/nextAV.png</file>
+    <file>icons/pause.png</file>
+    <file>icons/play.png</file>
+  </qresource>
 </RCC>

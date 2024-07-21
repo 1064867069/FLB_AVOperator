@@ -24,22 +24,32 @@ AudioSDLPlayer* AudioSDLPlayer::getInstance()
 
 void AudioSDLPlayer::pause()
 {
-	if (m_spReader)
+	QMutexLocker locker(&m_mutexPause);
+	if (m_spReader && !m_isPaused)
+	{
+		m_isPaused = true;
 		SDL_PauseAudio(1);
+	}
 }
 
 void AudioSDLPlayer::cont()
 {
-	if (m_spReader)
+	QMutexLocker locker(&m_mutexPause);
+	if (m_spReader && m_isPaused)
+	{
+		m_isPaused = false;
 		SDL_PauseAudio(0);
+	}
 }
 
 void AudioSDLPlayer::resetNoLock()
 {
 	if (m_spReader)
 	{
-		SDL_CloseAudio();
 		m_spReader->stop();
+
+		SDL_CloseAudio();
+		m_isPaused = true;
 
 		if (m_pSwrCtx != nullptr)
 		{
@@ -83,7 +93,10 @@ bool AudioSDLPlayer::changeReader(ReaderSPtr sp)
 
 	if (m_spReader)
 	{
-		if (info == m_spReader->getInfo() || info->equalAudioInfo(*m_spReader->getInfo()))
+		if (m_spReader.get() == sp.get())
+			return true;
+
+		if (info->equalAudioInfo(*m_spReader->getInfo()))
 		{
 			m_spReader = std::move(sp);
 			return true;
@@ -141,10 +154,10 @@ bool AudioSDLPlayer::changeReader(ReaderSPtr sp)
 	return true;
 }
 
-void AudioSDLPlayer::unbindReader(ReaderSPtr sp)
+void AudioSDLPlayer::unbindReader(const ReaderSPtr& sp)
 {
 	//QMutexLocker locker(&m_mutex);
-	if (sp && m_spReader && m_spReader->getInfo() == sp->getInfo())
+	if (sp && m_spReader && m_spReader.get() == sp.get())
 	{
 		this->resetNoLock();
 	}
@@ -165,7 +178,7 @@ void AudioSDLPlayer::bindAVPlayer(FAVPlayer* pPlayer)
 
 	if (m_pBindPlayer != nullptr)
 	{
-		m_pBindPlayer->pause(true);
+		m_pBindPlayer->pause();
 	}
 	if (this->changeReader(pPlayer->m_spReader))
 		m_pBindPlayer = pPlayer;
@@ -191,6 +204,7 @@ void AudioSDLPlayer::fill_audio(void* para, uint8_t* stream, int len)
 	static QList<uint8_t> ls_buffer;
 	SDL_memset(stream, 0, len); // 将缓冲区清零
 
+	int needLen = len;
 	auto* player = getInstance();
 	QMutexLocker locker(&player->m_mutex);
 	if (!player->m_spReader)
@@ -228,7 +242,7 @@ void AudioSDLPlayer::fill_audio(void* para, uint8_t* stream, int len)
 		return;
 	}
 
-	double curSecond = -1;
+	double curSecond = -1, curEnd = -1;
 	while (len > 0 && reader->getInfo()->m_isOpen)
 	{
 		auto frame = reader->popAudioFrame();
@@ -256,7 +270,13 @@ void AudioSDLPlayer::fill_audio(void* para, uint8_t* stream, int len)
 
 			curSecond = frame->getSecond();
 		}
-
+		else if (!reader->decoding() && len == needLen)
+		{
+			//说明已经播放完毕！
+			locker.unlock();
+			player->m_pBindPlayer->onAudioEnd();
+			return;
+		}
 	}
 
 	if (curSecond >= 0 && player->m_pBindPlayer != nullptr)

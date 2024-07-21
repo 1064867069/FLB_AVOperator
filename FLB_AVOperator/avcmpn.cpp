@@ -179,6 +179,11 @@ void VideoFrameProcesser::processFrame(FrameSPtr spf)
 	m_frameDecoded = true;
 }
 
+void VideoFrameProcesser::reset()
+{
+	m_frameDecoded = false;
+}
+
 const uint8_t* VideoFrameProcesser::getYuvBuffer()const
 {
 	return m_frameDecoded ? m_pYuvBuffer : nullptr;

@@ -35,6 +35,9 @@
     <ClCompile Include="flb_avoperator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <QtRcc Include="playbtm.qrc">
+      <Filter>Resource Files</Filter>
+    </QtRcc>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -58,6 +61,30 @@
     <ClCompile Include="audiosdlplayer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="playbtmbar.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="uicomponents.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="interfaces.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="timeobservers.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="avfilemanager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="playtable.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="str_utils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="playlistwidget.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="avoperator.h">
@@ -66,10 +93,36 @@
     <QtMoc Include="videoopenglplayer.h">
       <Filter>Header Files</Filter>
     </QtMoc>
+    <QtMoc Include="playbtmbar.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="uicomponents.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="timeobservers.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="interfaces.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="avfilemanager.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="playtable.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="playlistwidget.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <QtUic Include="playbtmbar.ui">
       <Filter>Form Files</Filter>
     </QtUic>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="str_utils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -11,6 +11,11 @@ bool FAVFrameBuffer::isBeyond()const
 	return m_bufferFrames.size() >= m_limCapacity;
 }
 
+bool FAVFrameBuffer::isEmpty()const
+{
+	return m_bufferFrames.size() == 0;
+}
+
 void FAVFrameBuffer::waitNotBeyond()const
 {
 	if (this->isBeyond())
@@ -18,7 +23,7 @@ void FAVFrameBuffer::waitNotBeyond()const
 		QMutexLocker locker(&m_mutex);
 		if (this->isBeyond())
 		{
-			m_condNotBeyond.wait(&m_mutex);
+			m_condNotBeyond.wait(&m_mutex, 5);
 		}
 	}
 }
@@ -43,7 +48,7 @@ FrameSPtr FAVFrameBuffer::popFrame()
 {
 	QMutexLocker locker(&m_mutex);
 
-	if (m_curIndex >= m_bufferFrames.size())
+	/*if (m_curIndex >= m_bufferFrames.size())
 		return nullptr;
 
 	size_t mid = m_bufferFrames.size() / 2;
@@ -62,7 +67,14 @@ FrameSPtr FAVFrameBuffer::popFrame()
 		}
 
 		return res;
-	}
+	}*/
+
+	if (this->isEmpty())
+		return nullptr;
+
+	auto res = m_bufferFrames.front();
+	m_bufferFrames.pop_front();
+	return res;
 }
 
 void FAVFrameBuffer::clear()

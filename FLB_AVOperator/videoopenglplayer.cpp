@@ -1,12 +1,16 @@
 #include "videoopenglplayer.h"
 #include "avoperator.h"
+#include "playbtmbar.h"
+
 #include <QDebug>
 #include <QDateTime>
+#include <QMouseEvent>
 
 #define ATTRIB_VERTEX 3
 #define ATTRIB_TEXTURE 4
 
-VideoOpenGLPlayer::VideoOpenGLPlayer(QWidget* p) :QOpenGLWidget(p), m_pPlayer(new FAVPlayer(this))
+VideoOpenGLPlayer::VideoOpenGLPlayer(QWidget* p) :QOpenGLWidget(p), m_pPlayer(new FAVPlayer(this)),
+m_pPlayBtmWidget(new PlayBtmBar(m_pPlayer, this))
 {
 	m_textureUniformY = 0;
 	m_textureUniformU = 0;
@@ -16,32 +20,30 @@ VideoOpenGLPlayer::VideoOpenGLPlayer(QWidget* p) :QOpenGLWidget(p), m_pPlayer(ne
 	mPicIndexX = 0;
 	mPicIndexY = 0;
 
-	pVShader = NULL;
-	pFShader = NULL;
-	m_pShaderProgram = NULL;
-	m_pTextureY = NULL;
-	m_pTextureU = NULL;
-	m_pTextureV = NULL;
+	pVShader = nullptr;
+	pFShader = nullptr;
+	m_pShaderProgram = nullptr;
+	m_pTextureY = nullptr;
+	m_pTextureU = nullptr;
+	m_pTextureV = nullptr;
 
 	m_vertexVertices = new GLfloat[8];
 
 	setAcceptDrops(true);
 
-	connect(&m_timer, &QTimer::timeout, this, &VideoOpenGLPlayer::playFrame);
+	//m_timerBtmHide.setInterval(1000);
+	m_pPlayBtmWidget->hide();
+	m_pPlayBtmWidget->installEventFilter(this);
 
-	/*mIsPlaying = false;
-	mPlayFailed = false;
-	mCurrentVideoKeepAspectRatio = gVideoKeepAspectRatio;
-	mIsCloseAble = true;
-	mIsOpenGLInited = false;
-	mLastGetFrameTime = 0;*/
+	setMouseTracking(true);
 
-	//this->initializeGL();
+	connect(&m_timerBtmHide, &QTimer::timeout, this, &VideoOpenGLPlayer::hideBtmWidget);
+	connect(&m_timerFramePlay, &QTimer::timeout, this, &VideoOpenGLPlayer::playFrame);
 }
 
 VideoOpenGLPlayer::~VideoOpenGLPlayer()
 {
-
+	qDebug() << "视频播放窗口析构！";
 }
 
 FAVPlayer* VideoOpenGLPlayer::getPlayer()
@@ -66,6 +68,16 @@ void VideoOpenGLPlayer::bindReader(ReaderSPtr spr)
 	}
 }
 
+void VideoOpenGLPlayer::refreshHide()
+{
+	if (!m_timerBtmHide.isActive())
+	{
+		this->resetBtmWidget();
+
+	}
+	m_timerBtmHide.start(3000);
+}
+
 void VideoOpenGLPlayer::pause(bool isPause)
 {
 	if (!m_spReader)
@@ -76,18 +88,67 @@ void VideoOpenGLPlayer::pause(bool isPause)
 
 	if (isPause)
 	{
-		if (m_timer.isActive())
+		if (m_timerFramePlay.isActive())
 		{
-			m_timer.stop();
+			m_timerFramePlay.stop();
+
 		}
 	}
 	else
 	{
-		if (!m_timer.isActive())
+		if (!m_timerFramePlay.isActive() && m_spReader->getInfo()->m_vIndx >= 0)
 		{
-			m_timer.start();
+			m_timerFramePlay.start();
 		}
 	}
+
+	m_pPlayBtmWidget->setPlayState(!isPause);
+}
+
+void VideoOpenGLPlayer::onAVStop()
+{
+	this->pause(true);
+
+	m_upVideoProcessor.reset();
+	m_spCurFrame.reset();
+	m_spNextFrame.reset();
+
+	this->update();
+}
+
+void VideoOpenGLPlayer::onPauseSeek()
+{
+	m_spCurFrame.reset();
+	m_spNextFrame.reset();
+
+	//若干毫秒还获取不到当前帧就不用了
+	for (int i = 0; i < 10; ++i)
+	{
+		if (m_pPlayer->state() != PlayState::Pause)
+			return;
+
+		m_spCurFrame = m_spReader->popVideoFrame();
+		if (m_spCurFrame)
+			break;
+
+		QThread::msleep(5);
+	}
+
+	if (!m_spCurFrame)
+		return;
+
+	m_upVideoProcessor->processFrame(m_spCurFrame);
+	this->update();
+}
+
+void VideoOpenGLPlayer::onSeek()
+{
+	if (!m_spReader || m_spReader->getInfo()->m_vIndx < 0)
+		return;
+
+	m_spCurFrame.reset();
+	m_spNextFrame.reset();
+	this->pause(true);
 }
 
 void VideoOpenGLPlayer::initializeGL()
@@ -325,6 +386,9 @@ void VideoOpenGLPlayer::resetGLVertex(int window_W, int window_H)
 
 bool VideoOpenGLPlayer::initProcessor()
 {
+	if (m_upVideoProcessor)
+		m_upVideoProcessor.reset();
+
 	if (!m_spReader)
 		return false;
 
@@ -333,7 +397,7 @@ bool VideoOpenGLPlayer::initProcessor()
 	{
 		return false;
 	}
-	m_timer.setInterval(std::max(1000 / info->m_avgfRate * 0.6, 1.0));
+	m_timerFramePlay.setInterval(std::max(1000 / info->m_avgfRate * 0.6, 1.0));
 
 	m_upVideoProcessor = std::make_unique<VideoFrameProcesser>(m_spReader->getInfo());
 	return m_upVideoProcessor->valid();
@@ -356,7 +420,6 @@ void VideoOpenGLPlayer::playFrame()
 	}
 
 	auto secnd = m_pPlayer->getCurSecond();
-	auto scd = m_spNextFrame->getSecond();
 	while (m_spNextFrame && m_spNextFrame->getSecond() < secnd)
 	{
 		m_spCurFrame = m_spNextFrame;
@@ -367,7 +430,16 @@ void VideoOpenGLPlayer::playFrame()
 
 
 	if (!m_spCurFrame || m_spCurFrame->getSecond() == preSecond)
+	{
+		if (m_spCurFrame && !m_spNextFrame && !m_spReader->decoding())
+		{
+			m_upVideoProcessor->reset();
+			this->update();
+			this->pause(true);
+			emit videoEnd();
+		}
 		return;
+	}
 
 	m_upVideoProcessor->processFrame(m_spCurFrame);
 
@@ -376,7 +448,6 @@ void VideoOpenGLPlayer::playFrame()
 	{
 		this->setVideoWidth(w, h);
 	}
-
 
 	this->update();
 }
@@ -420,11 +491,67 @@ void VideoOpenGLPlayer::paintGL()
 
 			m_pShaderProgram->release(); // 释放小程序
 		}
+		else
+		{
+			glClearColor(0.0, 0.0, 0.0, 1.0);
+		}
 	}
 	else
 	{
-		glClearColor(1.0, 0.0, 0.0, 1.0);
+		glClearColor(0.0, 0.0, 0.0, 1.0);
 	}
+}
+
+void VideoOpenGLPlayer::mouseMoveEvent(QMouseEvent* event)
+{
+	QOpenGLWidget::mouseMoveEvent(event);
+
+	this->refreshHide();
+}
+
+bool VideoOpenGLPlayer::eventFilter(QObject* watched, QEvent* event)
+{
+	PlayBtmBar* btm = dynamic_cast<PlayBtmBar*>(watched);
+	if (btm != nullptr && btm == m_pPlayBtmWidget)
+	{
+		//qDebug() << event->type();
+		m_pPlayBtmWidget->onEventType(event->type());
+	}
+
+	return QOpenGLWidget::eventFilter(watched, event);
+}
+
+void VideoOpenGLPlayer::resizeEvent(QResizeEvent* event)
+{
+	QOpenGLWidget::resizeEvent(event);
+	if (!m_pPlayBtmWidget->isHidden())
+		this->resetBtmWidget();
+}
+
+void VideoOpenGLPlayer::hideBtmWidget()
+{
+	if ((!m_pPlayBtmWidget->isSliderPressed() && !m_pPlayBtmWidget->isMouseEntered()))
+	{
+		m_pPlayBtmWidget->hide();
+		m_timerBtmHide.stop();
+	}
+}
+
+PlayBtmBar* VideoOpenGLPlayer::getPlayBtmWidget()
+{
+	return m_pPlayBtmWidget;
+}
+
+void VideoOpenGLPlayer::resetBtmWidget()
+{
+	int w = this->width(), h = this->height();
+	int btmHeight = h / 7;
+	m_pPlayBtmWidget->resize(w, btmHeight);
+
+	int y = h - m_pPlayBtmWidget->height();
+	m_pPlayBtmWidget->move(0, y);
+
+	m_pPlayBtmWidget->show();
 }
 
 void VideoOpenGLPlayer::setVideoWidth(int width, int height)

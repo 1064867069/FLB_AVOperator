@@ -13,9 +13,10 @@
 #include <QtWidgets/QAction>
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QButtonGroup>
+#include <QtWidgets/QHBoxLayout>
 #include <QtWidgets/QHeaderView>
-#include <QtWidgets/QPushButton>
 #include <QtWidgets/QSlider>
+#include <QtWidgets/QVBoxLayout>
 #include <QtWidgets/QWidget>
 
 QT_BEGIN_NAMESPACE
@@ -23,29 +24,37 @@ QT_BEGIN_NAMESPACE
 class Ui_PlayBtmBar
 {
 public:
-    QSlider *horizontalSlider;
-    QPushButton *pushButton;
-    QPushButton *pushButton_2;
-    QPushButton *pushButton_3;
+    QWidget *verticalLayoutWidget;
+    QVBoxLayout *verticalLayout;
+    QSlider *m_pPlaySlider;
+    QHBoxLayout *horizontalLayout;
 
     void setupUi(QWidget *PlayBtmBar)
     {
         if (PlayBtmBar->objectName().isEmpty())
             PlayBtmBar->setObjectName(QStringLiteral("PlayBtmBar"));
-        PlayBtmBar->resize(699, 51);
-        horizontalSlider = new QSlider(PlayBtmBar);
-        horizontalSlider->setObjectName(QStringLiteral("horizontalSlider"));
-        horizontalSlider->setGeometry(QRect(110, 13, 271, 22));
-        horizontalSlider->setOrientation(Qt::Horizontal);
-        pushButton = new QPushButton(PlayBtmBar);
-        pushButton->setObjectName(QStringLiteral("pushButton"));
-        pushButton->setGeometry(QRect(10, 10, 31, 31));
-        pushButton_2 = new QPushButton(PlayBtmBar);
-        pushButton_2->setObjectName(QStringLiteral("pushButton_2"));
-        pushButton_2->setGeometry(QRect(40, 10, 31, 31));
-        pushButton_3 = new QPushButton(PlayBtmBar);
-        pushButton_3->setObjectName(QStringLiteral("pushButton_3"));
-        pushButton_3->setGeometry(QRect(70, 10, 31, 31));
+        PlayBtmBar->resize(705, 100);
+        PlayBtmBar->setMaximumSize(QSize(16777215, 100));
+        PlayBtmBar->setStyleSheet(QStringLiteral(""));
+        verticalLayoutWidget = new QWidget(PlayBtmBar);
+        verticalLayoutWidget->setObjectName(QStringLiteral("verticalLayoutWidget"));
+        verticalLayoutWidget->setGeometry(QRect(10, 10, 681, 80));
+        verticalLayout = new QVBoxLayout(verticalLayoutWidget);
+        verticalLayout->setSpacing(0);
+        verticalLayout->setObjectName(QStringLiteral("verticalLayout"));
+        verticalLayout->setContentsMargins(0, 0, 0, 0);
+        m_pPlaySlider = new QSlider(verticalLayoutWidget);
+        m_pPlaySlider->setObjectName(QStringLiteral("m_pPlaySlider"));
+        m_pPlaySlider->setOrientation(Qt::Horizontal);
+
+        verticalLayout->addWidget(m_pPlaySlider);
+
+        horizontalLayout = new QHBoxLayout();
+        horizontalLayout->setSpacing(1);
+        horizontalLayout->setObjectName(QStringLiteral("horizontalLayout"));
+
+        verticalLayout->addLayout(horizontalLayout);
+
 
         retranslateUi(PlayBtmBar);
 
@@ -55,9 +64,6 @@ public:
     void retranslateUi(QWidget *PlayBtmBar)
     {
         PlayBtmBar->setWindowTitle(QApplication::translate("PlayBtmBar", "Form", Q_NULLPTR));
-        pushButton->setText(QString());
-        pushButton_2->setText(QString());
-        pushButton_3->setText(QString());
     } // retranslateUi
 
 };
