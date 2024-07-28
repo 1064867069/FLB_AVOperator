@@ -13,6 +13,8 @@ public:
 	SliderController(FAVPlayer* obj, QSlider* p);
 
 	bool isPressed()const;
+
+
 protected slots:
 	virtual void onSecondChanged(double)Q_DECL_OVERRIDE;
 
@@ -23,6 +25,8 @@ protected slots:
 	void onSliderReleased();
 
 	void resetSlider();
+
+	void onAVStop();
 
 signals:
 	void seekProp(double);
@@ -50,8 +54,8 @@ protected slots:
 private:
 	QLabel* m_pLabel;
 
-	QString m_curText;
-	QString m_durText;
+	QString m_curText = "00:00";
+	QString m_durText = "00:00";
 };
 
 #endif // !TIMEOBSERVERS_H

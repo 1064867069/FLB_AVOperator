@@ -92,17 +92,21 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="audioprocess.cpp" />
     <ClCompile Include="audiosdlplayer.cpp" />
     <ClCompile Include="avfilemanager.cpp" />
     <ClCompile Include="avplayer.cpp" />
+    <ClCompile Include="avutils.cpp" />
     <ClCompile Include="interfaces.cpp" />
     <ClCompile Include="playbtmbar.cpp" />
     <ClCompile Include="playlistwidget.cpp" />
     <ClCompile Include="playtable.cpp" />
+    <ClCompile Include="speedcmbbox.cpp" />
     <ClCompile Include="str_utils.cpp" />
     <ClCompile Include="timeobservers.cpp" />
     <ClCompile Include="uicomponents.cpp" />
     <ClCompile Include="videoopenglplayer.cpp" />
+    <ClCompile Include="volumewidget.cpp" />
     <QtRcc Include="flb_avoperator.qrc" />
     <QtRcc Include="playbtm.qrc" />
     <QtUic Include="flb_avoperator.ui" />
@@ -113,6 +117,7 @@
     <ClCompile Include="flb_avoperator.cpp" />
     <ClCompile Include="main.cpp" />
     <QtUic Include="playbtmbar.ui" />
+    <QtUic Include="volumewidget.ui" />
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="avoperator.h" />
@@ -134,8 +139,13 @@
     <QtMoc Include="avfilemanager.h" />
   </ItemGroup>
   <ItemGroup>
+    <QtMoc Include="volumewidget.h" />
     <QtMoc Include="playlistwidget.h" />
     <QtMoc Include="playtable.h" />
+    <QtMoc Include="audioprocess.h" />
+    <ClInclude Include="avtemplates.h" />
+    <ClInclude Include="avutils.h" />
+    <QtMoc Include="speedcmbbox.h" />
     <ClInclude Include="str_utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

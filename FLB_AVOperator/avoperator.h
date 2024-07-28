@@ -21,35 +21,8 @@ extern "C"
 
 };
 
-struct FAVInfo
-{
-	QString m_filePath;//文件路径
-
-	int m_vIndx = -1;//视频流索引
-	int m_aIndx = -1;//音频流索引
-
-	//音频参数
-	int m_nChannel; //声道数
-	int m_sampleRate; //采样率
-	int m_frameSize; //帧采样点数
-
-	AVSampleFormat m_sampleFmt; //输入采样格式
-	AVChannelLayout m_chLayout;
-
-	//视频参数
-	AVPixelFormat m_pixFmt;
-	AVRational m_aspect_ratio;
-	double m_avgfRate;
-	int m_width;
-	int m_height;
-
-	bool m_isOpen = false;
-
-	void reset()noexcept;
-
-	//暂时返回false，记得改
-	bool equalAudioInfo(const FAVInfo&)const;
-};
+#include "interfaces.h"
+#include "avutils.h"
 
 struct FAVProcessors
 {
@@ -62,12 +35,17 @@ struct FAVProcessors
 	void reset()noexcept;
 };
 
-
+class IAudioFrameProcessor;
 class FFrame
 {
 public:
-	FFrame();
+	explicit FFrame();
+
+	FFrame(const FFrame&);
+
 	~FFrame();
+
+	FFrame& operator=(const FFrame&) = delete;
 
 	int decode(AVCodecContext*, AVStream*);
 
@@ -92,8 +70,11 @@ private:
 	AVFrame* m_pFrame;
 	//int64_t m_pts = AV_NOPTS_VALUE;
 	bool m_valid = false;
+
+	friend class IAudioFrameProcessor;
 };
 using FrameSPtr = std::shared_ptr<FFrame>;
+
 
 class VideoFrameProcesser
 {
@@ -158,6 +139,7 @@ private:
 
 using BufferUPtr = std::unique_ptr<FAVFrameBuffer>;
 
+class AudioListProcessor;
 class FAVFileReader : public QObject
 {
 	Q_OBJECT
@@ -183,13 +165,14 @@ public:
 	void reset()noexcept;
 
 	bool decoding()const;
+
+	void addProcessor(AProcessSPtr);
 signals:
 	void durationSecondChanged(double);
 
 	void decodeEnd();
 
 	void seekFinished();
-
 
 private:
 	double getPreciousDurationSecond();
@@ -200,6 +183,8 @@ private:
 
 	void decodePacket(AVCodecContext* dec_ctx, AVPacket* pkt, AVStream* strm);
 private:
+	std::unique_ptr<AudioListProcessor> m_upAudioProcessors;
+
 	BufferUPtr m_upAudioBuffer = nullptr;
 	BufferUPtr m_upVideoBuffer = nullptr;
 
@@ -207,7 +192,7 @@ private:
 	QWaitCondition m_condStop;
 
 	FAVProcessors m_procs;
-	FAVInfo m_info;
+	std::shared_ptr<FAVInfo> m_spInfo;
 
 	int64_t m_aDuration = AV_NOPTS_VALUE;
 	int64_t m_vDuration = AV_NOPTS_VALUE;
@@ -239,6 +224,7 @@ public:
 signals:
 	void avPlayerBindChanged(FAVPlayer*);
 
+	void audioEnd(FAVPlayer*);
 private:
 	ReaderSPtr m_spReader;
 	FAVPlayer* m_pBindPlayer = nullptr;
@@ -277,6 +263,7 @@ enum class PlayState
 };
 
 class VideoOpenGLPlayer;
+class AudioSpeedProcessor;
 class FAVPlayer :public QObject
 {
 	Q_OBJECT
@@ -287,14 +274,6 @@ public:
 
 	bool openFile(const QString&);
 
-	void stop();
-
-	//void pause(bool);
-
-	void pause();
-
-	void playCont();
-
 	PlayState state()const;
 
 	double getCurSecond()const;
@@ -303,9 +282,23 @@ public:
 
 	bool getAudioEnd()const;
 
+	void addProcessor(const AProcessSPtr&);
+
+	float setSpeed(float);
 public slots:
+	void stop();
+
+	//void pause(bool);
+
+	void pause();
+
+	void playCont();
+
 	void seekProp(double);
 
+	void seekForward();
+
+	void seekBackward();
 signals:
 	void secondChanged(double);
 
@@ -322,7 +315,7 @@ private slots:
 
 	void onSeekFinished();
 
-	void onAudioEnd();
+	void onAudioEnd(FAVPlayer*);
 
 	void onVideoEnd();
 
@@ -331,10 +324,11 @@ private slots:
 private:
 	VideoOpenGLPlayer* m_pVideoPlayer = nullptr;
 	ReaderSPtr m_spReader;
-	PlayState m_state = PlayState::Stop;
+	std::shared_ptr<AudioSpeedProcessor> m_spSpeedProc;
 
 	QThread m_threadDecode;
 
+	PlayState m_state = PlayState::Stop;
 	qint64 m_lastCntTime = -1;
 	double m_durationSecond = -1;
 	mutable double m_curSecond = 0;

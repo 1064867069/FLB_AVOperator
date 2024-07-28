@@ -85,6 +85,18 @@
     <ClCompile Include="playlistwidget.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="volumewidget.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="avutils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="audioprocess.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="speedcmbbox.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="avoperator.h">
@@ -114,14 +126,32 @@
     <QtMoc Include="playlistwidget.h">
       <Filter>Header Files</Filter>
     </QtMoc>
+    <QtMoc Include="volumewidget.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="audioprocess.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="speedcmbbox.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <QtUic Include="playbtmbar.ui">
       <Filter>Form Files</Filter>
     </QtUic>
+    <QtUic Include="volumewidget.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="str_utils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="avutils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="avtemplates.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

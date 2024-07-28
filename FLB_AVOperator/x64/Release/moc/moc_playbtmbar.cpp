@@ -21,8 +21,8 @@ QT_BEGIN_MOC_NAMESPACE
 QT_WARNING_PUSH
 QT_WARNING_DISABLE_DEPRECATED
 struct qt_meta_stringdata_PlayBtmBar_t {
-    QByteArrayData data[8];
-    char stringdata0[94];
+    QByteArrayData data[17];
+    char stringdata0[199];
 };
 #define QT_MOC_LITERAL(idx, ofs, len) \
     Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
@@ -35,15 +35,27 @@ QT_MOC_LITERAL(0, 0, 10), // "PlayBtmBar"
 QT_MOC_LITERAL(1, 11, 11), // "playClicked"
 QT_MOC_LITERAL(2, 23, 0), // ""
 QT_MOC_LITERAL(3, 24, 12), // "pauseClicked"
-QT_MOC_LITERAL(4, 37, 12), // "setPlayState"
-QT_MOC_LITERAL(5, 50, 11), // "onEventType"
-QT_MOC_LITERAL(6, 62, 12), // "QEvent::Type"
-QT_MOC_LITERAL(7, 75, 18) // "onPlayPauseClicked"
+QT_MOC_LITERAL(4, 37, 11), // "lastClicked"
+QT_MOC_LITERAL(5, 49, 11), // "nextClicked"
+QT_MOC_LITERAL(6, 61, 11), // "fullClicked"
+QT_MOC_LITERAL(7, 73, 12), // "setPlayState"
+QT_MOC_LITERAL(8, 86, 11), // "onEventType"
+QT_MOC_LITERAL(9, 98, 12), // "QEvent::Type"
+QT_MOC_LITERAL(10, 111, 12), // "onFullScreen"
+QT_MOC_LITERAL(11, 124, 18), // "onPlayPauseClicked"
+QT_MOC_LITERAL(12, 143, 10), // "paintEvent"
+QT_MOC_LITERAL(13, 154, 12), // "QPaintEvent*"
+QT_MOC_LITERAL(14, 167, 5), // "event"
+QT_MOC_LITERAL(15, 173, 12), // "onVolClicked"
+QT_MOC_LITERAL(16, 186, 12) // "onVolChanged"
 
     },
     "PlayBtmBar\0playClicked\0\0pauseClicked\0"
+    "lastClicked\0nextClicked\0fullClicked\0"
     "setPlayState\0onEventType\0QEvent::Type\0"
-    "onPlayPauseClicked"
+    "onFullScreen\0onPlayPauseClicked\0"
+    "paintEvent\0QPaintEvent*\0event\0"
+    "onVolClicked\0onVolChanged"
 };
 #undef QT_MOC_LITERAL
 
@@ -53,30 +65,44 @@ static const uint qt_meta_data_PlayBtmBar[] = {
        7,       // revision
        0,       // classname
        0,    0, // classinfo
-       5,   14, // methods
+      12,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
        0,       // flags
-       2,       // signalCount
+       5,       // signalCount
 
  // signals: name, argc, parameters, tag, flags
-       1,    0,   39,    2, 0x06 /* Public */,
-       3,    0,   40,    2, 0x06 /* Public */,
+       1,    0,   74,    2, 0x06 /* Public */,
+       3,    0,   75,    2, 0x06 /* Public */,
+       4,    0,   76,    2, 0x06 /* Public */,
+       5,    0,   77,    2, 0x06 /* Public */,
+       6,    0,   78,    2, 0x06 /* Public */,
 
  // slots: name, argc, parameters, tag, flags
-       4,    1,   41,    2, 0x0a /* Public */,
-       5,    1,   44,    2, 0x0a /* Public */,
-       7,    0,   47,    2, 0x09 /* Protected */,
+       7,    1,   79,    2, 0x0a /* Public */,
+       8,    1,   82,    2, 0x0a /* Public */,
+      10,    0,   85,    2, 0x0a /* Public */,
+      11,    0,   86,    2, 0x0a /* Public */,
+      12,    1,   87,    2, 0x09 /* Protected */,
+      15,    0,   90,    2, 0x09 /* Protected */,
+      16,    1,   91,    2, 0x09 /* Protected */,
 
  // signals: parameters
+    QMetaType::Void,
+    QMetaType::Void,
+    QMetaType::Void,
     QMetaType::Void,
     QMetaType::Void,
 
  // slots: parameters
     QMetaType::Void, QMetaType::Bool,    2,
-    QMetaType::Void, 0x80000000 | 6,    2,
+    QMetaType::Void, 0x80000000 | 9,    2,
     QMetaType::Void,
+    QMetaType::Void,
+    QMetaType::Void, 0x80000000 | 13,   14,
+    QMetaType::Void,
+    QMetaType::Void, QMetaType::Int,    2,
 
        0        // eod
 };
@@ -89,9 +115,16 @@ void PlayBtmBar::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, 
         switch (_id) {
         case 0: _t->playClicked(); break;
         case 1: _t->pauseClicked(); break;
-        case 2: _t->setPlayState((*reinterpret_cast< bool(*)>(_a[1]))); break;
-        case 3: _t->onEventType((*reinterpret_cast< QEvent::Type(*)>(_a[1]))); break;
-        case 4: _t->onPlayPauseClicked(); break;
+        case 2: _t->lastClicked(); break;
+        case 3: _t->nextClicked(); break;
+        case 4: _t->fullClicked(); break;
+        case 5: _t->setPlayState((*reinterpret_cast< bool(*)>(_a[1]))); break;
+        case 6: _t->onEventType((*reinterpret_cast< QEvent::Type(*)>(_a[1]))); break;
+        case 7: _t->onFullScreen(); break;
+        case 8: _t->onPlayPauseClicked(); break;
+        case 9: _t->paintEvent((*reinterpret_cast< QPaintEvent*(*)>(_a[1]))); break;
+        case 10: _t->onVolClicked(); break;
+        case 11: _t->onVolChanged((*reinterpret_cast< int(*)>(_a[1]))); break;
         default: ;
         }
     } else if (_c == QMetaObject::IndexOfMethod) {
@@ -107,6 +140,27 @@ void PlayBtmBar::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, 
             typedef void (PlayBtmBar::*_t)();
             if (*reinterpret_cast<_t *>(_a[1]) == static_cast<_t>(&PlayBtmBar::pauseClicked)) {
                 *result = 1;
+                return;
+            }
+        }
+        {
+            typedef void (PlayBtmBar::*_t)();
+            if (*reinterpret_cast<_t *>(_a[1]) == static_cast<_t>(&PlayBtmBar::lastClicked)) {
+                *result = 2;
+                return;
+            }
+        }
+        {
+            typedef void (PlayBtmBar::*_t)();
+            if (*reinterpret_cast<_t *>(_a[1]) == static_cast<_t>(&PlayBtmBar::nextClicked)) {
+                *result = 3;
+                return;
+            }
+        }
+        {
+            typedef void (PlayBtmBar::*_t)();
+            if (*reinterpret_cast<_t *>(_a[1]) == static_cast<_t>(&PlayBtmBar::fullClicked)) {
+                *result = 4;
                 return;
             }
         }
@@ -138,13 +192,13 @@ int PlayBtmBar::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 5)
+        if (_id < 12)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 5;
+        _id -= 12;
     } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 5)
+        if (_id < 12)
             *reinterpret_cast<int*>(_a[0]) = -1;
-        _id -= 5;
+        _id -= 12;
     }
     return _id;
 }
@@ -159,6 +213,24 @@ void PlayBtmBar::playClicked()
 void PlayBtmBar::pauseClicked()
 {
     QMetaObject::activate(this, &staticMetaObject, 1, nullptr);
+}
+
+// SIGNAL 2
+void PlayBtmBar::lastClicked()
+{
+    QMetaObject::activate(this, &staticMetaObject, 2, nullptr);
+}
+
+// SIGNAL 3
+void PlayBtmBar::nextClicked()
+{
+    QMetaObject::activate(this, &staticMetaObject, 3, nullptr);
+}
+
+// SIGNAL 4
+void PlayBtmBar::fullClicked()
+{
+    QMetaObject::activate(this, &staticMetaObject, 4, nullptr);
 }
 QT_WARNING_POP
 QT_END_MOC_NAMESPACE

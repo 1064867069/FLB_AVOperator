@@ -70,6 +70,7 @@ void FLB_AVOperator::setDockPlayList()
 	auto playBtm = m_pVideoWidget->getPlayBtmWidget();
 	connect(playBtm, &PlayBtmBar::lastClicked, playTable, &LocalPlayTable::lastAVF);
 	connect(playBtm, &PlayBtmBar::nextClicked, playTable, &LocalPlayTable::nextAVF);
+	connect(playBtm, &PlayBtmBar::fullClicked, this, &FLB_AVOperator::onFullClicked);
 }
 
 void FLB_AVOperator::openFile(QString fp)
@@ -87,4 +88,18 @@ void FLB_AVOperator::openFile(QString fp)
 	}
 }
 
+
+void FLB_AVOperator::onFullClicked()
+{
+	if (!m_pVideoWidget->isFullScreen())
+	{
+		m_pVideoWidget->setWindowFlags(Qt::Window | Qt::FramelessWindowHint);
+		m_pVideoWidget->showFullScreen();
+	}
+	else
+	{
+		m_pVideoWidget->setWindowFlags(m_pVideoWidget->windowFlags() & ~Qt::Window);
+		this->setCentralWidget(m_pVideoWidget);
+	}
+}
 

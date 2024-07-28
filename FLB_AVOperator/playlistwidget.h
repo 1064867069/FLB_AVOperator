@@ -10,7 +10,7 @@ class PlayListWidget :public QWidget
 {
 	Q_OBJECT
 public:
-	PlayListWidget(QWidget* p = nullptr);
+	explicit PlayListWidget(QWidget* p = nullptr);
 
 	const LocalPlayTable* getPlayTable()const;
 

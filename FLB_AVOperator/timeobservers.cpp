@@ -8,6 +8,7 @@ SliderController::SliderController(FAVPlayer* obj, QSlider* p) : ITimeObserver(o
 
 	connect(m_pSliderObj, &QSlider::sliderPressed, this, &SliderController::onSliderPressed);
 	connect(m_pSliderObj, &QSlider::sliderReleased, this, &SliderController::onSliderReleased);
+	connect(obj, &FAVPlayer::stopped, this, &SliderController::onAVStop);
 }
 
 bool SliderController::isPressed()const
@@ -58,6 +59,13 @@ void SliderController::resetSlider()
 
 	int gap = m_pSliderObj->maximum() - m_pSliderObj->minimum();
 	m_pSliderObj->setValue(m_pSliderObj->minimum() + gap * m_second / m_duration);
+}
+
+void SliderController::onAVStop()
+{
+	m_second = -1;
+	m_duration = 0;
+	this->resetSlider();
 }
 
 QString getTimeTxt(int d)

@@ -21,8 +21,8 @@ QT_BEGIN_MOC_NAMESPACE
 QT_WARNING_PUSH
 QT_WARNING_DISABLE_DEPRECATED
 struct qt_meta_stringdata_VideoOpenGLPlayer_t {
-    QByteArrayData data[23];
-    char stringdata0[242];
+    QByteArrayData data[29];
+    char stringdata0[317];
 };
 #define QT_MOC_LITERAL(idx, ofs, len) \
     Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
@@ -37,32 +37,40 @@ QT_MOC_LITERAL(2, 27, 0), // ""
 QT_MOC_LITERAL(3, 28, 13), // "initProcessor"
 QT_MOC_LITERAL(4, 42, 9), // "playFrame"
 QT_MOC_LITERAL(5, 52, 5), // "pause"
-QT_MOC_LITERAL(6, 58, 11), // "refreshHide"
-QT_MOC_LITERAL(7, 70, 6), // "onSeek"
-QT_MOC_LITERAL(8, 77, 13), // "hideBtmWidget"
-QT_MOC_LITERAL(9, 91, 12), // "initializeGL"
-QT_MOC_LITERAL(10, 104, 8), // "resizeGL"
-QT_MOC_LITERAL(11, 113, 8), // "window_W"
-QT_MOC_LITERAL(12, 122, 8), // "window_H"
-QT_MOC_LITERAL(13, 131, 7), // "paintGL"
-QT_MOC_LITERAL(14, 139, 14), // "mouseMoveEvent"
-QT_MOC_LITERAL(15, 154, 12), // "QMouseEvent*"
-QT_MOC_LITERAL(16, 167, 5), // "event"
-QT_MOC_LITERAL(17, 173, 11), // "resizeEvent"
-QT_MOC_LITERAL(18, 185, 13), // "QResizeEvent*"
-QT_MOC_LITERAL(19, 199, 11), // "eventFilter"
-QT_MOC_LITERAL(20, 211, 7), // "watched"
-QT_MOC_LITERAL(21, 219, 7), // "QEvent*"
-QT_MOC_LITERAL(22, 227, 14) // "resetBtmWidget"
+QT_MOC_LITERAL(6, 58, 8), // "onAVStop"
+QT_MOC_LITERAL(7, 67, 11), // "onPauseSeek"
+QT_MOC_LITERAL(8, 79, 11), // "refreshHide"
+QT_MOC_LITERAL(9, 91, 6), // "onSeek"
+QT_MOC_LITERAL(10, 98, 13), // "hideBtmWidget"
+QT_MOC_LITERAL(11, 112, 16), // "getPlayBtmWidget"
+QT_MOC_LITERAL(12, 129, 11), // "PlayBtmBar*"
+QT_MOC_LITERAL(13, 141, 12), // "initializeGL"
+QT_MOC_LITERAL(14, 154, 8), // "resizeGL"
+QT_MOC_LITERAL(15, 163, 8), // "window_W"
+QT_MOC_LITERAL(16, 172, 8), // "window_H"
+QT_MOC_LITERAL(17, 181, 7), // "paintGL"
+QT_MOC_LITERAL(18, 189, 14), // "mouseMoveEvent"
+QT_MOC_LITERAL(19, 204, 12), // "QMouseEvent*"
+QT_MOC_LITERAL(20, 217, 5), // "event"
+QT_MOC_LITERAL(21, 223, 11), // "resizeEvent"
+QT_MOC_LITERAL(22, 235, 13), // "QResizeEvent*"
+QT_MOC_LITERAL(23, 249, 11), // "eventFilter"
+QT_MOC_LITERAL(24, 261, 7), // "watched"
+QT_MOC_LITERAL(25, 269, 7), // "QEvent*"
+QT_MOC_LITERAL(26, 277, 13), // "keyPressEvent"
+QT_MOC_LITERAL(27, 291, 10), // "QKeyEvent*"
+QT_MOC_LITERAL(28, 302, 14) // "resetBtmWidget"
 
     },
     "VideoOpenGLPlayer\0videoEnd\0\0initProcessor\0"
-    "playFrame\0pause\0refreshHide\0onSeek\0"
-    "hideBtmWidget\0initializeGL\0resizeGL\0"
-    "window_W\0window_H\0paintGL\0mouseMoveEvent\0"
-    "QMouseEvent*\0event\0resizeEvent\0"
-    "QResizeEvent*\0eventFilter\0watched\0"
-    "QEvent*\0resetBtmWidget"
+    "playFrame\0pause\0onAVStop\0onPauseSeek\0"
+    "refreshHide\0onSeek\0hideBtmWidget\0"
+    "getPlayBtmWidget\0PlayBtmBar*\0initializeGL\0"
+    "resizeGL\0window_W\0window_H\0paintGL\0"
+    "mouseMoveEvent\0QMouseEvent*\0event\0"
+    "resizeEvent\0QResizeEvent*\0eventFilter\0"
+    "watched\0QEvent*\0keyPressEvent\0QKeyEvent*\0"
+    "resetBtmWidget"
 };
 #undef QT_MOC_LITERAL
 
@@ -72,7 +80,7 @@ static const uint qt_meta_data_VideoOpenGLPlayer[] = {
        7,       // revision
        0,       // classname
        0,    0, // classinfo
-      14,   14, // methods
+      18,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
@@ -80,22 +88,26 @@ static const uint qt_meta_data_VideoOpenGLPlayer[] = {
        1,       // signalCount
 
  // signals: name, argc, parameters, tag, flags
-       1,    0,   84,    2, 0x06 /* Public */,
+       1,    0,  104,    2, 0x06 /* Public */,
 
  // slots: name, argc, parameters, tag, flags
-       3,    0,   85,    2, 0x0a /* Public */,
-       4,    0,   86,    2, 0x0a /* Public */,
-       5,    1,   87,    2, 0x0a /* Public */,
-       6,    0,   90,    2, 0x0a /* Public */,
-       7,    0,   91,    2, 0x0a /* Public */,
-       8,    0,   92,    2, 0x0a /* Public */,
-       9,    0,   93,    2, 0x09 /* Protected */,
-      10,    2,   94,    2, 0x09 /* Protected */,
-      13,    0,   99,    2, 0x09 /* Protected */,
-      14,    1,  100,    2, 0x09 /* Protected */,
-      17,    1,  103,    2, 0x09 /* Protected */,
-      19,    2,  106,    2, 0x09 /* Protected */,
-      22,    0,  111,    2, 0x09 /* Protected */,
+       3,    0,  105,    2, 0x0a /* Public */,
+       4,    0,  106,    2, 0x0a /* Public */,
+       5,    1,  107,    2, 0x0a /* Public */,
+       6,    0,  110,    2, 0x0a /* Public */,
+       7,    0,  111,    2, 0x0a /* Public */,
+       8,    0,  112,    2, 0x0a /* Public */,
+       9,    0,  113,    2, 0x0a /* Public */,
+      10,    0,  114,    2, 0x0a /* Public */,
+      11,    0,  115,    2, 0x0a /* Public */,
+      13,    0,  116,    2, 0x09 /* Protected */,
+      14,    2,  117,    2, 0x09 /* Protected */,
+      17,    0,  122,    2, 0x09 /* Protected */,
+      18,    1,  123,    2, 0x09 /* Protected */,
+      21,    1,  126,    2, 0x09 /* Protected */,
+      23,    2,  129,    2, 0x09 /* Protected */,
+      26,    1,  134,    2, 0x09 /* Protected */,
+      28,    0,  137,    2, 0x09 /* Protected */,
 
  // signals: parameters
     QMetaType::Void,
@@ -108,11 +120,15 @@ static const uint qt_meta_data_VideoOpenGLPlayer[] = {
     QMetaType::Void,
     QMetaType::Void,
     QMetaType::Void,
-    QMetaType::Void, QMetaType::Int, QMetaType::Int,   11,   12,
     QMetaType::Void,
-    QMetaType::Void, 0x80000000 | 15,   16,
-    QMetaType::Void, 0x80000000 | 18,   16,
-    QMetaType::Bool, QMetaType::QObjectStar, 0x80000000 | 21,   20,   16,
+    0x80000000 | 12,
+    QMetaType::Void,
+    QMetaType::Void, QMetaType::Int, QMetaType::Int,   15,   16,
+    QMetaType::Void,
+    QMetaType::Void, 0x80000000 | 19,   20,
+    QMetaType::Void, 0x80000000 | 22,   20,
+    QMetaType::Bool, QMetaType::QObjectStar, 0x80000000 | 25,   24,   20,
+    QMetaType::Void, 0x80000000 | 27,   20,
     QMetaType::Void,
 
        0        // eod
@@ -129,17 +145,22 @@ void VideoOpenGLPlayer::qt_static_metacall(QObject *_o, QMetaObject::Call _c, in
             if (_a[0]) *reinterpret_cast< bool*>(_a[0]) = std::move(_r); }  break;
         case 2: _t->playFrame(); break;
         case 3: _t->pause((*reinterpret_cast< bool(*)>(_a[1]))); break;
-        case 4: _t->refreshHide(); break;
-        case 5: _t->onSeek(); break;
-        case 6: _t->hideBtmWidget(); break;
-        case 7: _t->initializeGL(); break;
-        case 8: _t->resizeGL((*reinterpret_cast< int(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2]))); break;
-        case 9: _t->paintGL(); break;
-        case 10: _t->mouseMoveEvent((*reinterpret_cast< QMouseEvent*(*)>(_a[1]))); break;
-        case 11: _t->resizeEvent((*reinterpret_cast< QResizeEvent*(*)>(_a[1]))); break;
-        case 12: { bool _r = _t->eventFilter((*reinterpret_cast< QObject*(*)>(_a[1])),(*reinterpret_cast< QEvent*(*)>(_a[2])));
+        case 4: _t->onAVStop(); break;
+        case 5: _t->onPauseSeek(); break;
+        case 6: _t->refreshHide(); break;
+        case 7: _t->onSeek(); break;
+        case 8: _t->hideBtmWidget(); break;
+        case 9: { PlayBtmBar* _r = _t->getPlayBtmWidget();
+            if (_a[0]) *reinterpret_cast< PlayBtmBar**>(_a[0]) = std::move(_r); }  break;
+        case 10: _t->initializeGL(); break;
+        case 11: _t->resizeGL((*reinterpret_cast< int(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2]))); break;
+        case 12: _t->paintGL(); break;
+        case 13: _t->mouseMoveEvent((*reinterpret_cast< QMouseEvent*(*)>(_a[1]))); break;
+        case 14: _t->resizeEvent((*reinterpret_cast< QResizeEvent*(*)>(_a[1]))); break;
+        case 15: { bool _r = _t->eventFilter((*reinterpret_cast< QObject*(*)>(_a[1])),(*reinterpret_cast< QEvent*(*)>(_a[2])));
             if (_a[0]) *reinterpret_cast< bool*>(_a[0]) = std::move(_r); }  break;
-        case 13: _t->resetBtmWidget(); break;
+        case 16: _t->keyPressEvent((*reinterpret_cast< QKeyEvent*(*)>(_a[1]))); break;
+        case 17: _t->resetBtmWidget(); break;
         default: ;
         }
     } else if (_c == QMetaObject::IndexOfMethod) {
@@ -181,13 +202,13 @@ int VideoOpenGLPlayer::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 14)
+        if (_id < 18)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 14;
+        _id -= 18;
     } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 14)
+        if (_id < 18)
             *reinterpret_cast<int*>(_a[0]) = -1;
-        _id -= 14;
+        _id -= 18;
     }
     return _id;
 }

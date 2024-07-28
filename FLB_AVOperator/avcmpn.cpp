@@ -40,12 +40,22 @@ void FAVProcessors::reset()noexcept
 
 FFrame::FFrame()
 {
+
 	m_pFrame = av_frame_alloc();
+
+}
+
+FFrame::FFrame(const FFrame& f)
+{
+	m_pFrame = av_frame_clone(f.m_pFrame);
+	m_valid = f.m_valid;
 }
 
 FFrame::~FFrame()
 {
 	av_frame_free(&m_pFrame);
+
+
 }
 
 int FFrame::decode(AVCodecContext* dec_ctx, AVStream* strm)

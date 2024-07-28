@@ -1,5 +1,12 @@
 <RCC>
   <qresource prefix="FLB_AVOperator">
+    <file>icons/volume.png</file>
+    <file>icons/silence.png</file>
+    <file>icons/notfull.png</file>
+    <file>icons/full.png</file>
+    <file>icons/stop.png</file>
+    <file>icons/forward.png</file>
+    <file>icons/backward.png</file>
     <file>icons/lastAV.png</file>
     <file>icons/nextAV.png</file>
     <file>icons/pause.png</file>

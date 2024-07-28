@@ -1,13 +1,15 @@
 #include "avoperator.h"
+#include "avutils.h"
+#include "audioprocess.h"
 
 #include <QDebug>
 #include <qlogging.h>
 
 
 FAVFileReader::FAVFileReader(QObject* p) :QObject(p), m_upAudioBuffer(std::make_unique<FAVFrameBuffer>(10)),
-m_upVideoBuffer(std::make_unique<FAVFrameBuffer>(5))
+m_upVideoBuffer(std::make_unique<FAVFrameBuffer>(5)), m_spInfo(std::make_shared<FAVInfo>())
 {
-
+	m_upAudioProcessors = std::make_unique<AudioListProcessor>();
 }
 
 FAVFileReader::~FAVFileReader()
@@ -60,13 +62,13 @@ bool FAVFileReader::openFile(const QString& fpath)
 			qCritical() << "Can't open video_decode_ctx" << '\n';
 			return false;
 		}
-		m_info.m_vIndx = video_index;
-		m_info.m_avgfRate = av_q2d(m_procs.m_pSrcVideo->r_frame_rate);
-		m_info.m_height = m_procs.m_pVDecCtx->height;
-		m_info.m_width = m_procs.m_pVDecCtx->width;
-		m_info.m_aspect_ratio = m_procs.m_pSrcVideo->codecpar->sample_aspect_ratio;
-		m_info.m_pixFmt = m_procs.m_pVDecCtx->pix_fmt;
-		qDebug() << "frame rate of video = " << m_info.m_avgfRate;
+		m_spInfo->m_vIndx = video_index;
+		m_spInfo->m_avgfRate = av_q2d(m_procs.m_pSrcVideo->r_frame_rate);
+		m_spInfo->m_height = m_procs.m_pVDecCtx->height;
+		m_spInfo->m_width = m_procs.m_pVDecCtx->width;
+		m_spInfo->m_aspect_ratio = m_procs.m_pSrcVideo->codecpar->sample_aspect_ratio;
+		m_spInfo->m_pixFmt = m_procs.m_pVDecCtx->pix_fmt;
+		qDebug() << "frame rate of video = " << m_spInfo->m_avgfRate;
 
 		m_vDuration = m_procs.m_pSrcVideo->duration;
 		//v_dur = av_q2d(m_procs.m_pSrcVideo->time_base) * m_vDuration;
@@ -95,37 +97,38 @@ bool FAVFileReader::openFile(const QString& fpath)
 			qCritical() << "Can't open audio_decode_ctx" << '\n';
 			return false;
 		}
-		m_info.m_aIndx = audio_index;
-		m_info.m_sampleFmt = m_procs.m_pADecCtx->sample_fmt;
-		m_info.m_chLayout = m_procs.m_pADecCtx->ch_layout;
-		m_info.m_sampleRate = m_procs.m_pADecCtx->sample_rate;
-		m_info.m_frameSize = m_procs.m_pADecCtx->frame_size;
-		m_info.m_nChannel = m_info.m_chLayout.nb_channels;
+		m_spInfo->m_aIndx = audio_index;
+		m_spInfo->m_sampleFmt = m_procs.m_pADecCtx->sample_fmt;
+		m_spInfo->m_chLayout = m_procs.m_pADecCtx->ch_layout;
+		m_spInfo->m_sampleRate = m_procs.m_pADecCtx->sample_rate;
+		m_spInfo->m_frameSize = m_procs.m_pADecCtx->frame_size;
+		m_spInfo->m_nChannel = m_spInfo->m_chLayout.nb_channels;
 
 		m_aDuration = m_procs.m_pSrcAudio->duration;
 		//a_dur = av_q2d(m_procs.m_pSrcAudio->time_base) * m_aDuration;
 	}
 
-	if (m_info.m_aIndx < 0 && m_info.m_vIndx < 0)
+	if (m_spInfo->m_aIndx < 0 && m_spInfo->m_vIndx < 0)
 	{
 		qCritical() << "No audio and video stream!" << '\n';
 		return false;
 	}
 
-	m_info.m_filePath = fpath;
-	m_info.m_isOpen = true;
+	m_spInfo->m_filePath = fpath;
+	m_spInfo->m_isOpen = true;
 	this->getPreciousDurationSecond();
 	return true;
 }
 
 const FAVInfo* FAVFileReader::getInfo()const
 {
-	return &m_info;
+	return m_spInfo.get();
 }
 
 FrameSPtr FAVFileReader::popAudioFrame()
 {
-	return m_upAudioBuffer->popFrame();
+	return m_upAudioProcessors->processFrame(m_upAudioBuffer->popFrame(), m_spInfo.get());
+	//	return m_upAudioBuffer->popFrame();
 }
 
 FrameSPtr FAVFileReader::popVideoFrame()
@@ -153,27 +156,31 @@ void FAVFileReader::stop()
 	{
 		{
 			QMutexLocker locker(&m_mutex);
-			m_stop = true;
+			if (!m_stop)
+			{
+				m_stop = true;
 
-			m_upAudioBuffer->clear();
-			m_upVideoBuffer->clear();
+				m_upAudioBuffer->clear();
+				m_upVideoBuffer->clear();
 
-			m_condStop.wait(&m_mutex);
+				m_condStop.wait(&m_mutex);
+			}
 		}
 
 		this->reset();
+		qDebug() << "文件阅读器关闭！";
 	}
 }
 
 double FAVFileReader::getPreciousDurationSecond()
 {
 	//目前预设该函数被调用时，并未处于解码状态
-	if ((m_info.m_aIndx < 0 && m_info.m_vIndx < 0) || !m_info.m_isOpen || m_decoding)
+	if ((m_spInfo->m_aIndx < 0 && m_spInfo->m_vIndx < 0) || !m_spInfo->m_isOpen || m_decoding)
 		return -1;
 
 	auto pts2sec = [](AVRational tb, int64_t d)->double {return av_q2d(tb) * d; };
-	double a_dur = m_info.m_aIndx >= 0 ? pts2sec(m_procs.m_pSrcAudio->time_base, m_aDuration) : 0;
-	double v_dur = m_info.m_vIndx >= 0 ? pts2sec(m_procs.m_pSrcVideo->time_base, m_vDuration) : 0;
+	double a_dur = m_spInfo->m_aIndx >= 0 ? pts2sec(m_procs.m_pSrcAudio->time_base, m_aDuration) : 0;
+	double v_dur = m_spInfo->m_vIndx >= 0 ? pts2sec(m_procs.m_pSrcVideo->time_base, m_vDuration) : 0;
 
 	this->seekSecond(std::max(a_dur, v_dur));
 	if (!this->checkAndSeek())
@@ -188,7 +195,7 @@ double FAVFileReader::getPreciousDurationSecond()
 	m_vDuration = 0;
 	while (av_read_frame(m_procs.m_pInFmtCtx, packet) >= 0)
 	{
-		if (packet->stream_index == m_info.m_aIndx)
+		if (packet->stream_index == m_spInfo->m_aIndx)
 		{
 			m_aDuration = std::max(m_aDuration, packet->pts + packet->duration);
 		}
@@ -198,8 +205,8 @@ double FAVFileReader::getPreciousDurationSecond()
 		}
 	}
 	av_packet_free(&packet);
-	a_dur = m_info.m_aIndx >= 0 ? pts2sec(m_procs.m_pSrcAudio->time_base, m_aDuration) : 0;
-	v_dur = m_info.m_vIndx >= 0 ? pts2sec(m_procs.m_pSrcVideo->time_base, m_vDuration) : 0;
+	a_dur = m_spInfo->m_aIndx >= 0 ? pts2sec(m_procs.m_pSrcAudio->time_base, m_aDuration) : 0;
+	v_dur = m_spInfo->m_vIndx >= 0 ? pts2sec(m_procs.m_pSrcVideo->time_base, m_vDuration) : 0;
 	emit durationSecondChanged(std::max(a_dur, v_dur));
 
 	qDebug() << a_dur << v_dur;
@@ -214,7 +221,7 @@ void FAVFileReader::reset()noexcept
 {
 	QMutexLocker locker(&m_mutex);
 	m_procs.reset();
-	m_info.reset();
+	m_spInfo->reset();
 
 	m_seekSecond = -1;
 	m_aDuration = 0;
@@ -228,18 +235,23 @@ bool FAVFileReader::decoding()const
 	return m_decoding;
 }
 
+void FAVFileReader::addProcessor(AProcessSPtr sp)
+{
+	m_upAudioProcessors->addProcessor(sp);
+}
+
 void FAVFileReader::waitNotBeyond()
 {
 	while (m_upAudioBuffer->isBeyond() || m_upVideoBuffer->isBeyond())
 	{
 		//若另一个缓冲区空了，先break
 
-		if (m_info.m_vIndx < 0 || !m_upVideoBuffer->isEmpty())
+		if (m_spInfo->m_vIndx < 0 || !m_upVideoBuffer->isEmpty())
 			m_upAudioBuffer->waitNotBeyond();
 		else
 			break;
 
-		if (m_info.m_aIndx < 0 || !m_upAudioBuffer->isEmpty())
+		if (m_spInfo->m_aIndx < 0 || !m_upAudioBuffer->isEmpty())
 			m_upVideoBuffer->waitNotBeyond();
 		else
 			break;
@@ -260,11 +272,12 @@ bool FAVFileReader::checkAndSeek()
 			return false;
 		}
 
-		if (m_info.m_aIndx >= 0)
+		if (m_spInfo->m_aIndx >= 0)
 			avcodec_flush_buffers(m_procs.m_pADecCtx);
-		if (m_info.m_vIndx >= 0)
+		if (m_spInfo->m_vIndx >= 0)
 			avcodec_flush_buffers(m_procs.m_pVDecCtx);
 
+		//if (m_spInfo->m_aIndx >= 0)
 		m_seekSecond = -1;
 		m_decoding = true;
 
@@ -277,9 +290,9 @@ bool FAVFileReader::checkAndSeek()
 void FAVFileReader::decodePacket(AVCodecContext* dec_ctx, AVPacket* pkt, AVStream* strm)
 {
 	BufferUPtr* uppBuffer = nullptr;
-	if (pkt->stream_index == m_info.m_aIndx)
+	if (pkt->stream_index == m_spInfo->m_aIndx)
 		uppBuffer = &m_upAudioBuffer;
-	else if (pkt->stream_index == m_info.m_vIndx)
+	else if (pkt->stream_index == m_spInfo->m_vIndx)
 		uppBuffer = &m_upVideoBuffer;
 	else
 		return;
@@ -301,11 +314,17 @@ void FAVFileReader::decodePacket(AVCodecContext* dec_ctx, AVPacket* pkt, AVStrea
 			qCritical() << "decode frame occur error " << ret << '\n';
 			break;
 		}
-		(*uppBuffer)->pushFrame(pf);
-		/*if (*uppBuffer == m_upVideoBuffer)
+
+		if (m_seekSecond >= 0)
 		{
-			qDebug() << "插入视频帧的时间戳：" << pf->getSecond() << " pts = " << pf->getPts();
-		}*/
+			if (pf->getSecond() < m_seekSecond)
+				continue;
+			else if (pkt->stream_index == m_spInfo->m_aIndx)
+				m_seekSecond = -1;
+		}
+
+		(*uppBuffer)->pushFrame(pf);
+
 		pf = std::make_shared<FFrame>();
 	}
 }
@@ -314,7 +333,7 @@ void FAVFileReader::readFrames()
 {
 	{
 		QMutexLocker locker(&m_mutex);
-		if (!m_info.m_isOpen)
+		if (!m_spInfo->m_isOpen)
 		{
 			qDebug() << "Try decoding while the av file is not open, exit!";
 			return;
@@ -338,12 +357,12 @@ void FAVFileReader::readFrames()
 			if (this->checkAndSeek())
 				continue;
 
-			if (packet->stream_index == m_info.m_aIndx)
+			if (packet->stream_index == m_spInfo->m_aIndx)
 			{
 				this->decodePacket(m_procs.m_pADecCtx, packet, m_procs.m_pSrcAudio);
 				//m_upAudioBuffer->pushFrame(pf);
 			}
-			else if (packet->stream_index == m_info.m_vIndx)
+			else if (packet->stream_index == m_spInfo->m_vIndx)
 			{
 				this->decodePacket(m_procs.m_pVDecCtx, packet, m_procs.m_pSrcVideo);
 				//m_upVideoBuffer->pushFrame(pf);

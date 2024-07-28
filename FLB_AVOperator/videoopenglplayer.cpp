@@ -10,7 +10,7 @@
 #define ATTRIB_TEXTURE 4
 
 VideoOpenGLPlayer::VideoOpenGLPlayer(QWidget* p) :QOpenGLWidget(p), m_pPlayer(new FAVPlayer(this)),
-m_pPlayBtmWidget(new PlayBtmBar(m_pPlayer, this))
+m_pPlayBtmWidget(new PlayBtmBar(m_pPlayer, this, this))
 {
 	m_textureUniformY = 0;
 	m_textureUniformU = 0;
@@ -36,6 +36,7 @@ m_pPlayBtmWidget(new PlayBtmBar(m_pPlayer, this))
 	m_pPlayBtmWidget->installEventFilter(this);
 
 	setMouseTracking(true);
+	grabKeyboard();
 
 	connect(&m_timerBtmHide, &QTimer::timeout, this, &VideoOpenGLPlayer::hideBtmWidget);
 	connect(&m_timerFramePlay, &QTimer::timeout, this, &VideoOpenGLPlayer::playFrame);
@@ -435,7 +436,7 @@ void VideoOpenGLPlayer::playFrame()
 		{
 			m_upVideoProcessor->reset();
 			this->update();
-			this->pause(true);
+			//this->pause(true);
 			emit videoEnd();
 		}
 		return;
@@ -507,6 +508,30 @@ void VideoOpenGLPlayer::mouseMoveEvent(QMouseEvent* event)
 	QOpenGLWidget::mouseMoveEvent(event);
 
 	this->refreshHide();
+}
+
+void VideoOpenGLPlayer::keyPressEvent(QKeyEvent* event)
+{
+
+	if (event->key() == Qt::Key_Escape)
+	{
+		if (this->isFullScreen())
+			m_pPlayBtmWidget->onFullScreen();
+	}
+	else if (event->key() == Qt::Key_Space)
+	{
+		m_pPlayBtmWidget->onPlayPauseClicked();
+	}
+	else if (event->key() == Qt::Key_Left)
+	{
+		m_pPlayer->seekBackward();
+	}
+	else if (event->key() == Qt::Key_Right)
+	{
+		m_pPlayer->seekForward();
+	}
+
+	QOpenGLWidget::keyPressEvent(event);
 }
 
 bool VideoOpenGLPlayer::eventFilter(QObject* watched, QEvent* event)

@@ -25,5 +25,28 @@ protected:
 	double m_duration = -1;
 };
 
+
+class FFrame;
+struct AVFrame;
+struct FAVInfo;
+using FrameSPtr = std::shared_ptr<FFrame>;
+class IAudioFrameProcessor : public QObject
+{
+	Q_OBJECT
+public:
+	explicit IAudioFrameProcessor(QObject* p = nullptr);
+
+	virtual ~IAudioFrameProcessor() = default;
+
+	virtual FrameSPtr processFrame(FrameSPtr pf, FAVInfo*) = 0;
+
+protected:
+	AVFrame* getAVFrame(FFrame*);
+
+	void setFrameValid(FFrame*);
+};
+
+using AProcessSPtr = std::shared_ptr<IAudioFrameProcessor>;
+
 #endif // !INTERFACES_H
 

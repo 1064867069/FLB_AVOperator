@@ -72,6 +72,8 @@ void LocalPlayTable::delFile()
 				this->item(i, 0)->setText(this->item(i + 1, 0)->text());
 			}
 			this->setRowCount(this->rowCount() - 1);
+			if (m_curPlayIndex > m_selectRow)
+				--m_curPlayIndex;
 		}
 		m_selectRow = -1;
 	}
@@ -100,8 +102,6 @@ void LocalPlayTable::addNewFile(int i)
 		int pos = paths[i].lastIndexOf("/");
 		if (pos < 0)
 			return;
-
-
 
 		this->setRowCount(i + 1);
 		this->addItem(i, paths[i]);
@@ -153,16 +153,8 @@ void LocalPlayTable::mouseDoubleClickEvent(QMouseEvent* event)
 
 void LocalPlayTable::onPlayTriggered()
 {
-	auto items = this->selectedItems();
-	if (items.size() == 0)
-	{
-		qDebug() << __FUNCTION__ << "No Item!";
-		return;
-	}
-
-	auto item = items[0];
-	int row = item->row();
-	this->playRowItem(row);
+	if (m_selectRow >= 0)
+		this->playRowItem(m_selectRow);
 }
 
 void LocalPlayTable::playRowItem(int r)

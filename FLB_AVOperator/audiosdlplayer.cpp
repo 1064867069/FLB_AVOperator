@@ -7,7 +7,9 @@
 
 AudioSDLPlayer::AudioSDLPlayer(QObject* p) :QObject(p)
 {
-
+	if (SDL_Init(SDL_INIT_AUDIO) < 0) {
+		qDebug() << "SDL_Init failed: " << SDL_GetError();
+	}
 }
 
 
@@ -270,13 +272,16 @@ void AudioSDLPlayer::fill_audio(void* para, uint8_t* stream, int len)
 
 			curSecond = frame->getSecond();
 		}
-		else if (!reader->decoding() && len == needLen)
+		else if (!reader->decoding())
 		{
 			//说明已经播放完毕！
+			SDL_MixAudio(stream, player->m_pOutBuffer, len, 0);
 			locker.unlock();
-			player->m_pBindPlayer->onAudioEnd();
-			return;
+			//player->m_pBindPlayer->onAudioEnd();
+			emit player->audioEnd(player->m_pBindPlayer);
+			break;
 		}
+
 	}
 
 	if (curSecond >= 0 && player->m_pBindPlayer != nullptr)

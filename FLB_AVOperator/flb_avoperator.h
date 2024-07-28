@@ -24,6 +24,7 @@ private:
 private slots:
 	void openFile(QString fp);
 
+	void onFullClicked();
 private:
 	VideoOpenGLPlayer* m_pVideoWidget;
 

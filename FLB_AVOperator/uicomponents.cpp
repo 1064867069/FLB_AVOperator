@@ -9,8 +9,9 @@ SquareButton::SquareButton(QWidget* p) :QPushButton(p)
 	this->setAttribute(Qt::WA_TransparentForMouseEvents, false);
 	this->setAttribute(Qt::WA_Hover, true);
 	this->raise();
-	this->setMinimumSize(40, 40);
-	this->setStyleSheet("QPushButton:hover { background-color: lightblue; }");
+	this->setMinimumSize(20, 20);
+	this->setStyleSheet("QPushButton { background-color: black; color: white; } "
+		"QPushButton:hover { background-color: lightblue; }");
 }
 
 void SquareButton::resizeEvent(QResizeEvent* event)
@@ -20,7 +21,8 @@ void SquareButton::resizeEvent(QResizeEvent* event)
 	if (size.width() != size.height())
 		this->setFixedWidth(size.height());
 
-	this->setIconSize(size);
+	auto bl = std::min(size.height(), size.width());
+	this->setIconSize(QSize(bl, bl));
 
 	qDebug() << size;
 }
