@@ -154,5 +154,11 @@
     <ClInclude Include="avtemplates.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="audiospeed.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="audiomanager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

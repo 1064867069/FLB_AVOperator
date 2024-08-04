@@ -250,6 +250,7 @@ void AudioSDLPlayer::fill_audio(void* para, uint8_t* stream, int len)
 		auto frame = reader->popAudioFrame();
 		if (frame)
 		{
+			//qDebug() << frame->getAVFrame()->pts;
 			auto buf = player->m_pOutBuffer;
 			int sz = frame->swrFrame(player->m_pSwrCtx, buf, MAX_AUDIO_FRAME_SIZE);
 			sz = sz * player->m_spec.channels * av_get_bytes_per_sample(player->m_outSampleFmt);
@@ -271,6 +272,7 @@ void AudioSDLPlayer::fill_audio(void* para, uint8_t* stream, int len)
 			}
 
 			curSecond = frame->getSecond();
+			//qDebug() << curSecond << len;
 		}
 		else if (!reader->decoding())
 		{
@@ -281,7 +283,6 @@ void AudioSDLPlayer::fill_audio(void* para, uint8_t* stream, int len)
 			emit player->audioEnd(player->m_pBindPlayer);
 			break;
 		}
-
 	}
 
 	if (curSecond >= 0 && player->m_pBindPlayer != nullptr)

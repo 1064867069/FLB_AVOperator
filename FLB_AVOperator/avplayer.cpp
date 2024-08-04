@@ -59,11 +59,13 @@ bool FAVPlayer::openFile(const QString& filePath)
 		}
 	}
 
-	m_spSpeedProc->setSpeed(m_spSpeedProc->getSpeed(), info->m_aIndx >= 0 ? info->m_frameSize : 0);
-
 	m_state = PlayState::Pause;
 	m_audioEnd = info->m_aIndx < 0;
 	m_videoEnd = info->m_vIndx < 0;
+
+	float speed = m_spSpeedProc->getSpeed();
+	m_spSpeedProc->setAVInfo(*m_spReader->getInfo());
+	m_spSpeedProc->setSpeed(speed, info->m_aIndx >= 0 ? info->m_frameSize : 0);
 
 	emit started();
 	return true;

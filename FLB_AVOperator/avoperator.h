@@ -35,45 +35,6 @@ struct FAVProcessors
 	void reset()noexcept;
 };
 
-class IAudioFrameProcessor;
-class FFrame
-{
-public:
-	explicit FFrame();
-
-	FFrame(const FFrame&);
-
-	~FFrame();
-
-	FFrame& operator=(const FFrame&) = delete;
-
-	int decode(AVCodecContext*, AVStream*);
-
-	bool valid()const;
-
-	int64_t getPts()const;
-
-	double getSecond()const;
-
-	AVRational getTimeBase()const;
-
-	int width()const;
-
-	int height()const;
-
-	int swrFrame(SwrContext* swrCtx, unsigned char* outBuf, int max_size);
-
-	int swsVideoFrame(SwsContext* swsCtx, int sh, std::shared_ptr<FFrame> yuvFrame);
-
-	void imageRelate(uint8_t* buffer, AVPixelFormat format, int w, int h);
-private:
-	AVFrame* m_pFrame;
-	//int64_t m_pts = AV_NOPTS_VALUE;
-	bool m_valid = false;
-
-	friend class IAudioFrameProcessor;
-};
-using FrameSPtr = std::shared_ptr<FFrame>;
 
 
 class VideoFrameProcesser

@@ -8,8 +8,9 @@ void FAVInfo::reset()noexcept
 	m_aIndx = -1;
 }
 
-bool FAVInfo::equalAudioInfo(const FAVInfo&)const
+bool FAVInfo::equalAudioInfo(const FAVInfo& info)const
 {
+
 	return false;
 }
 
@@ -54,8 +55,11 @@ FFrame::FFrame(const FFrame& f)
 FFrame::~FFrame()
 {
 	av_frame_free(&m_pFrame);
+}
 
-
+const AVFrame* FFrame::getAVFrame()const
+{
+	return m_pFrame;
 }
 
 int FFrame::decode(AVCodecContext* dec_ctx, AVStream* strm)

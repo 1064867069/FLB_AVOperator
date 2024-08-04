@@ -68,6 +68,7 @@ bool FAVFileReader::openFile(const QString& fpath)
 		m_spInfo->m_width = m_procs.m_pVDecCtx->width;
 		m_spInfo->m_aspect_ratio = m_procs.m_pSrcVideo->codecpar->sample_aspect_ratio;
 		m_spInfo->m_pixFmt = m_procs.m_pVDecCtx->pix_fmt;
+		m_spInfo->m_timeBaseVideo = m_procs.m_pSrcVideo->time_base;
 		qDebug() << "frame rate of video = " << m_spInfo->m_avgfRate;
 
 		m_vDuration = m_procs.m_pSrcVideo->duration;
@@ -103,6 +104,10 @@ bool FAVFileReader::openFile(const QString& fpath)
 		m_spInfo->m_sampleRate = m_procs.m_pADecCtx->sample_rate;
 		m_spInfo->m_frameSize = m_procs.m_pADecCtx->frame_size;
 		m_spInfo->m_nChannel = m_spInfo->m_chLayout.nb_channels;
+		m_spInfo->m_timeBaseAudio = m_procs.m_pSrcAudio->time_base;
+
+		if (m_spInfo->m_frameSize <= 0)
+			m_spInfo->m_frameSize = m_procs.m_pSrcAudio->codecpar->frame_size;
 
 		m_aDuration = m_procs.m_pSrcAudio->duration;
 		//a_dur = av_q2d(m_procs.m_pSrcAudio->time_base) * m_aDuration;
@@ -127,7 +132,24 @@ const FAVInfo* FAVFileReader::getInfo()const
 
 FrameSPtr FAVFileReader::popAudioFrame()
 {
-	return m_upAudioProcessors->processFrame(m_upAudioBuffer->popFrame(), m_spInfo.get());
+	FrameSPtr res = m_upAudioProcessors->getRestFrame(true);
+	if (res)
+		return res;
+
+	res = m_upAudioBuffer->popFrame();
+	if (res)
+		res = m_upAudioProcessors->processFrame(res);
+	else if (this->decoding())
+		res = m_upAudioProcessors->getRestFrame(true);
+	else
+	{
+		do
+		{
+			res = m_upAudioProcessors->getRestFrame(false);
+		} while (!res && !m_upAudioProcessors->lastNone());
+	}
+
+	return res;
 	//	return m_upAudioBuffer->popFrame();
 }
 
@@ -198,11 +220,21 @@ double FAVFileReader::getPreciousDurationSecond()
 		if (packet->stream_index == m_spInfo->m_aIndx)
 		{
 			m_aDuration = std::max(m_aDuration, packet->pts + packet->duration);
+			if (m_spInfo->m_frameSize <= 0)
+			{
+				this->decodePacket(m_procs.m_pADecCtx, packet, m_procs.m_pSrcAudio);
+				if (!m_upAudioBuffer->isEmpty())
+				{
+					auto spf = m_upAudioBuffer->popFrame();
+					m_spInfo->m_frameSize = spf->getAVFrame()->nb_samples;
+				}
+			}
 		}
 		else
 		{
 			m_vDuration = std::max(m_vDuration, packet->pts + packet->duration);
 		}
+
 	}
 	av_packet_free(&packet);
 	a_dur = m_spInfo->m_aIndx >= 0 ? pts2sec(m_procs.m_pSrcAudio->time_base, m_aDuration) : 0;
@@ -213,6 +245,7 @@ double FAVFileReader::getPreciousDurationSecond()
 
 	this->seekSecond(0);
 	this->checkAndSeek();
+	m_upAudioBuffer->clear();
 	//m_seekSecond = -1;
 	return std::max(a_dur, v_dur);
 }

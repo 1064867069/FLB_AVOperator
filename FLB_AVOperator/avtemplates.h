@@ -17,32 +17,78 @@ extern "C"
 
 class FAVInfo;
 
+namespace audio
+{
+	template<class T>
+	class UpperInType
+	{
+	public:
+		typedef uint64_t type;
+		static_assert(std::numeric_limits<T>::max() <= std::numeric_limits<type>::max()
+			&& std::numeric_limits<T>::lowest() >= std::numeric_limits<type>::lowest(), "range of type smaller than T");
+	};
+
+	template<>
+	class UpperInType<float>
+	{
+	public:
+		typedef double type;
+
+	};
+
+	template<>
+	class UpperInType<double>
+	{
+	public:
+		typedef long double type;
+
+	};
+
+	template<>
+	class UpperInType<uint8_t>
+	{
+	public:
+		typedef int32_t type;
+
+	};
+
+	template<>
+	class UpperInType<int16_t>
+	{
+	public:
+		typedef int32_t type;
+
+	};
+
+
+}
 
 template <class T>
 class VolProcessFunc
 {
 public:
-	void operator()(AVFrame*, const FAVInfo*, double factor);
+	void operator()(AVFrame*, double factor);
 };
 
 template <class T>
-void VolProcessFunc<T>::operator()(AVFrame* pframe, const FAVInfo* pinfo, double factor)
+void VolProcessFunc<T>::operator()(AVFrame* pframe, double factor)
 {
 	//factor = 1.0;
 	//static_assert(sizeof(H) > sizeof(T));
-	if (pinfo->m_aIndx < 0 || pframe->nb_samples <= 0)
+	if (pframe->nb_samples <= 0 || pframe->format == AV_SAMPLE_FMT_NONE)
 		return;
 
 	T maxV = std::numeric_limits<T>::max();
 	T minV = std::numeric_limits<T>::lowest();
+	int channels = pframe->ch_layout.nb_channels;
 	if (factor > 1)
 	{
 		maxV = maxV / factor;
 		minV = minV / factor;
 	}
-	if (av_sample_fmt_is_planar(pinfo->m_sampleFmt))
+	if (av_sample_fmt_is_planar(static_cast<AVSampleFormat>(pframe->format)))
 	{
-		for (int i = 0; i < pinfo->m_nChannel; ++i)
+		for (int i = 0; i < channels; ++i)
 		{
 			T* data = reinterpret_cast<T*>(pframe->data[i]);
 
@@ -67,7 +113,7 @@ void VolProcessFunc<T>::operator()(AVFrame* pframe, const FAVInfo* pinfo, double
 	else
 	{
 		T* data = reinterpret_cast<T*>(pframe->data[0]);
-		for (int i = 0; i < pinfo->m_nChannel * pframe->nb_samples; ++i)
+		for (int i = 0; i < channels * pframe->nb_samples; ++i)
 		{
 			if (data[i] > maxV)
 			{

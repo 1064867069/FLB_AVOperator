@@ -27,9 +27,12 @@ protected:
 
 
 class FFrame;
-struct AVFrame;
-struct FAVInfo;
 using FrameSPtr = std::shared_ptr<FFrame>;
+
+struct FAVInfo;
+struct AVFrame;
+enum class FAVProcessState;
+
 class IAudioFrameProcessor : public QObject
 {
 	Q_OBJECT
@@ -38,15 +41,25 @@ public:
 
 	virtual ~IAudioFrameProcessor() = default;
 
-	virtual FrameSPtr processFrame(FrameSPtr pf, FAVInfo*) = 0;
+	////是否剩余完整的帧缓存
+	//virtual bool restWhole();
+
+	virtual FrameSPtr getRestFrame(bool);
+
+	//无效帧和不处理帧会原样返回
+	virtual FrameSPtr processFrame(FrameSPtr) = 0;
 
 protected:
 	AVFrame* getAVFrame(FFrame*);
 
 	void setFrameValid(FFrame*);
+
+	FrameSPtr createNewFrameBySample(const FAVInfo*, int);
 };
 
 using AProcessSPtr = std::shared_ptr<IAudioFrameProcessor>;
+
+
 
 #endif // !INTERFACES_H
 

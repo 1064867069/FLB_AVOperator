@@ -143,6 +143,8 @@
     <QtMoc Include="playlistwidget.h" />
     <QtMoc Include="playtable.h" />
     <QtMoc Include="audioprocess.h" />
+    <ClInclude Include="audiomanager.h" />
+    <ClInclude Include="audiospeed.h" />
     <ClInclude Include="avtemplates.h" />
     <ClInclude Include="avutils.h" />
     <QtMoc Include="speedcmbbox.h" />
