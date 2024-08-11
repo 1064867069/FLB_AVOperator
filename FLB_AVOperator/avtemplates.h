@@ -17,13 +17,13 @@ extern "C"
 
 class FAVInfo;
 
-namespace audio
+namespace fmttp
 {
 	template<class T>
 	class UpperInType
 	{
 	public:
-		typedef uint64_t type;
+		typedef int64_t type;
 		static_assert(std::numeric_limits<T>::max() <= std::numeric_limits<type>::max()
 			&& std::numeric_limits<T>::lowest() >= std::numeric_limits<type>::lowest(), "range of type smaller than T");
 	};
@@ -177,6 +177,10 @@ namespace audio
 	}
 }
 
+namespace video
+{
+
+}
 
 #endif // !AVTEMPLATES_H
 

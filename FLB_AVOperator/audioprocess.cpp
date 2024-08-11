@@ -92,7 +92,7 @@ FrameSPtr VolumnAdjustProcessor::processFrame(FrameSPtr pf)
 		return pf;
 	}
 
-	FrameSPtr result = std::make_shared<FFrame>(*pf);
+	FrameSPtr result = pf->deepAFClone();
 	auto volFunc = audio::getVolAdjustFunc(static_cast<AVSampleFormat>(paf->format));
 
 	paf = this->getAVFrame(result.get());

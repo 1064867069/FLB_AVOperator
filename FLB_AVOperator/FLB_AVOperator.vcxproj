@@ -97,6 +97,7 @@
     <ClCompile Include="avfilemanager.cpp" />
     <ClCompile Include="avplayer.cpp" />
     <ClCompile Include="avutils.cpp" />
+    <ClCompile Include="dlgvideoparam.cpp" />
     <ClCompile Include="interfaces.cpp" />
     <ClCompile Include="playbtmbar.cpp" />
     <ClCompile Include="playlistwidget.cpp" />
@@ -106,9 +107,11 @@
     <ClCompile Include="timeobservers.cpp" />
     <ClCompile Include="uicomponents.cpp" />
     <ClCompile Include="videoopenglplayer.cpp" />
+    <ClCompile Include="videoprocess.cpp" />
     <ClCompile Include="volumewidget.cpp" />
     <QtRcc Include="flb_avoperator.qrc" />
     <QtRcc Include="playbtm.qrc" />
+    <QtUic Include="dlgvideoparam.ui" />
     <QtUic Include="flb_avoperator.ui" />
     <QtMoc Include="flb_avoperator.h" />
     <ClCompile Include="avcmpn.cpp" />
@@ -139,6 +142,8 @@
     <QtMoc Include="avfilemanager.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="videomanager.h" />
+    <ClInclude Include="videoprocess.h" />
     <QtMoc Include="volumewidget.h" />
     <QtMoc Include="playlistwidget.h" />
     <QtMoc Include="playtable.h" />
@@ -148,6 +153,7 @@
     <ClInclude Include="avtemplates.h" />
     <ClInclude Include="avutils.h" />
     <QtMoc Include="speedcmbbox.h" />
+    <QtMoc Include="dlgvideoparam.h" />
     <ClInclude Include="str_utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

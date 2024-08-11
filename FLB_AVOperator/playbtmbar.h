@@ -56,6 +56,7 @@ signals:
 
 	void fullClicked();
 
+	void setClicked();
 private:
 	FAVPlayer* m_pPlayer;
 
@@ -80,6 +81,8 @@ private:
 	SquareButton* m_pBtnVolume;
 
 	SpeedCombobox* m_pCmbBoxSpeed;
+
+	SquareButton* m_pBtnSet;
 
 	SquareButton* m_pBtnFull;
 

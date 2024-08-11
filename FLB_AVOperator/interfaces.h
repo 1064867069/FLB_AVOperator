@@ -59,7 +59,22 @@ protected:
 
 using AProcessSPtr = std::shared_ptr<IAudioFrameProcessor>;
 
+class IVideoFrameProcessor : public QObject
+{
+	Q_OBJECT
+public:
+	explicit IVideoFrameProcessor(QObject* p = nullptr);
 
+	//无效帧和不处理帧会原样返回
+	virtual FrameSPtr processFrame(FrameSPtr) = 0;
 
+protected:
+	AVFrame* getAVFrame(FFrame*);
+
+	void setFrameValid(FFrame*);
+
+	// FrameSPtr createNewFrame(const FAVInfo*);
+};
+using VProcessSPtr = std::shared_ptr<IVideoFrameProcessor>;
 #endif // !INTERFACES_H
 

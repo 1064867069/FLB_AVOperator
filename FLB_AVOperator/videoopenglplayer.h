@@ -1,13 +1,23 @@
 #ifndef VIDEOOPENGLPLAYER_H
 #define VIDEOOPENGLPLAYER_H
 
+#include "videoprocess.h"
+#include "dlgvideoparam.h"
+
 #include <QOpenGLWidget>
 
 #include <QOpenGLShaderProgram>
 #include <QOpenGLFunctions>
 #include <QOpenGLTexture>
 #include <QTimer>
+#include <QMutex>
+#include <QThread>
+#include <QWaitCondition>
+#include <QList>
+
 #include <memory>
+#include <future>
+
 
 class FAVPlayer;
 class FAVFileReader;
@@ -18,7 +28,45 @@ class PlayBtmBar;
 
 using ReaderSPtr = std::shared_ptr<FAVFileReader>;
 using FrameSPtr = std::shared_ptr<FFrame>;
-using VProcessorUPtr = std::unique_ptr<VideoFrameProcesser>;
+using VFrameProcessorUPtr = std::unique_ptr<VideoFrameProcesser>;
+
+class VideoFrameReadManager : public QObject
+{
+	Q_OBJECT
+public:
+	static std::shared_ptr<VideoFrameReadManager> createObj(ReaderSPtr, VideoProcessList*);
+
+	~VideoFrameReadManager();
+
+	FrameSPtr getFrame(double);
+
+	bool isStopped()const;
+public slots:
+	void procVFrames();
+
+	void stop();
+
+	void clear(bool lck = true);
+
+	FrameSPtr updateLastFrame(const FrameSPtr & = nullptr);
+
+
+private:
+	VideoFrameReadManager();
+
+	QThread m_threadProcFrame;
+	mutable QMutex m_mutex;
+	mutable QWaitCondition m_condStop;
+
+	FrameSPtr m_spLastFrame;
+	ReaderSPtr m_spReader;
+	VideoProcessList* m_pProcessList = nullptr;
+
+	QList<FrameSPtr> m_listOrgFrames;
+	QList<FrameSPtr> m_listProcFrames;
+
+	bool m_stop = true;
+};
 
 class VideoOpenGLPlayer :public QOpenGLWidget, protected QOpenGLFunctions
 {
@@ -28,9 +76,14 @@ public:
 	virtual ~VideoOpenGLPlayer();
 
 	void bindReader(ReaderSPtr);
+
 	void setVideoWidth(int width, int height);
 
+	void addVProcessor(const VProcessSPtr&);
+
 	FAVPlayer* getPlayer();
+
+
 
 public slots:
 	bool initProcessor();
@@ -50,6 +103,8 @@ public slots:
 
 	void hideBtmWidget();
 
+	void onParamsUpdated();
+
 	PlayBtmBar* getPlayBtmWidget();
 protected slots:
 	void initializeGL() Q_DECL_OVERRIDE;
@@ -62,21 +117,30 @@ protected slots:
 	void keyPressEvent(QKeyEvent* event)Q_DECL_OVERRIDE;
 
 	void resetBtmWidget();
+	//void playProcessedFrame();
 private:
 	void resetGLVertex(int window_W, int window_H);
 
 signals:
 	void videoEnd();
 
+	void needProc();
 private:
+	std::shared_ptr<VideoFrameReadManager> m_spFRdManager;
+	VideoProcessList* m_pProcessList;
+	//std::future<FrameSPtr> m_futureFrame;
+	//int m_timeProcStart = -1;
+	//int m_avrProcessTime = 0;//毫秒为单位
 
 	ReaderSPtr m_spReader;
 	FrameSPtr m_spCurFrame;
-	FrameSPtr m_spNextFrame;
+	/*FrameSPtr m_spNextFrame;
+	FrameSPtr m_spCurFrameProcessed;*/
 
 	FAVPlayer* m_pPlayer;
 	PlayBtmBar* m_pPlayBtmWidget;
-	VProcessorUPtr m_upVideoProcessor;
+	DlgVideoParam* m_pDlgVParam;
+	VFrameProcessorUPtr m_upVideoFrameProcessor;
 
 	QTimer m_timerFramePlay;
 

@@ -1,6 +1,7 @@
 #include "avoperator.h"
 #include "avutils.h"
 #include "audioprocess.h"
+#include "videoprocess.h"
 
 #include <QDebug>
 #include <qlogging.h>
@@ -268,10 +269,11 @@ bool FAVFileReader::decoding()const
 	return m_decoding;
 }
 
-void FAVFileReader::addProcessor(AProcessSPtr sp)
+void FAVFileReader::addAudioProcessor(AProcessSPtr sp)
 {
 	m_upAudioProcessors->addProcessor(sp);
 }
+
 
 void FAVFileReader::waitNotBeyond()
 {
@@ -310,7 +312,7 @@ bool FAVFileReader::checkAndSeek()
 		if (m_spInfo->m_vIndx >= 0)
 			avcodec_flush_buffers(m_procs.m_pVDecCtx);
 
-		//if (m_spInfo->m_aIndx >= 0)
+		m_seekDecodeSecond = m_seekSecond;
 		m_seekSecond = -1;
 		m_decoding = true;
 
@@ -322,13 +324,14 @@ bool FAVFileReader::checkAndSeek()
 
 void FAVFileReader::decodePacket(AVCodecContext* dec_ctx, AVPacket* pkt, AVStream* strm)
 {
-	BufferUPtr* uppBuffer = nullptr;
+	/*BufferUPtr* uppBuffer = nullptr;
 	if (pkt->stream_index == m_spInfo->m_aIndx)
 		uppBuffer = &m_upAudioBuffer;
 	else if (pkt->stream_index == m_spInfo->m_vIndx)
 		uppBuffer = &m_upVideoBuffer;
 	else
-		return;
+		return;*/
+	int index = pkt->stream_index;
 
 	FrameSPtr pf = std::make_shared<FFrame>();
 	// 发送压缩数据到解码器
@@ -350,13 +353,20 @@ void FAVFileReader::decodePacket(AVCodecContext* dec_ctx, AVPacket* pkt, AVStrea
 
 		if (m_seekSecond >= 0)
 		{
-			if (pf->getSecond() < m_seekSecond)
+			if (pf->getSecond() < m_seekDecodeSecond)
 				continue;
-			else if (pkt->stream_index == m_spInfo->m_aIndx)
-				m_seekSecond = -1;
+			else if (index == m_spInfo->m_aIndx && index >= 0)
+				m_seekDecodeSecond = -1;
 		}
 
-		(*uppBuffer)->pushFrame(pf);
+		if (index == m_spInfo->m_aIndx)
+		{
+			m_upAudioBuffer->pushFrame(pf);
+		}
+		else if (index == m_spInfo->m_vIndx)
+		{
+			m_upVideoBuffer->pushFrame(pf);
+		}
 
 		pf = std::make_shared<FFrame>();
 	}
@@ -400,6 +410,7 @@ void FAVFileReader::readFrames()
 				this->decodePacket(m_procs.m_pVDecCtx, packet, m_procs.m_pSrcVideo);
 				//m_upVideoBuffer->pushFrame(pf);
 			}
+			av_packet_unref(packet);
 		}
 
 		if (m_stop)

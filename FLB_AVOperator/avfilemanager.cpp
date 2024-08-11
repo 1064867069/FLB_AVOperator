@@ -43,7 +43,7 @@ bool AVFileManager::delFile(int i)
 void AVFileManager::importFile()
 {
 	QString filePath = QFileDialog::getOpenFileName(m_parent, "选择文件", "",
-		"Audio Files(*.mp3 *.wav *.aac *.flac);; Video Files(*.mp4 *.mkv);;");
+		"Audio Files(*.mp3 *.wav *.aac *.flac);; Video Files(*.mp4 *.mkv *.flv);;");
 	if (filePath != "")
 	{
 		auto& sqlManager = KFPSQLiteManager::getInstance();

@@ -3,6 +3,10 @@
 #include "avtemplates.h"
 #include "audiospeed.h"
 #include "audiomanager.h"
+#include "videomanager.h"
+
+#include<array>
+#include<QMutexLocker>
 
 void tst(const FAVInfo* i)
 {
@@ -86,5 +90,93 @@ namespace audio
 			return AudioSpeedScale<double>(ch, sampleRate);
 
 		return SpeedFunc();
+	}
+}
+
+namespace video
+{
+	void seriesProc(uint8_t* data, int size, int per_size, SingleDataFunc func)
+	{
+		int cur = 0;
+		for (int i = 0; i < size; ++i)
+		{
+			func(&data[cur]);
+			cur += per_size;
+		}
+	}
+
+	VideoMemoryManager* VideoMemoryManager::getInstance()
+	{
+		static VideoMemoryManager ls_manager;
+		return &ls_manager;
+	}
+
+	VideoMemoryManager::~VideoMemoryManager()
+	{
+		QMutexLocker locker(&m_mutex);
+		for (auto itr = m_hashPointerSize.begin(); itr != m_hashPointerSize.end(); ++itr)
+			m_allocator.deallocate(itr.key(), itr.value());
+	}
+
+	bool VideoMemoryManager::allocateImageMem(uint8_t* pointers[4], int linesizes[4],
+		int w, int h, enum AVPixelFormat pix_fmt)
+	{
+		if (linesizes[0] <= 0 || w <= 0 || h <= 0)
+			return false;
+
+		// 获取像素格式描述信息
+		const AVPixFmtDescriptor* desc = av_pix_fmt_desc_get(static_cast<AVPixelFormat>(pix_fmt));
+		if (!desc || desc->nb_components <= 0) {
+			return false;
+		}
+
+		auto vm = IVideoManager::getManagerByDepth(desc->comp[0].depth);
+		int sizePerComp = linesizes[0] * h * vm->perSize(), allSize = sizePerComp;
+		std::array<int, 4> szArr = { 0 };
+
+		szArr[0] = sizePerComp;
+		for (int i = 1; i < 4; ++i)
+		{
+			if (linesizes[i] <= 0)
+			{
+				szArr[i] = 0;
+				break;
+			}
+			else
+			{
+				float ratioFrom1 = static_cast<float>(linesizes[i]) / linesizes[0];
+				ratioFrom1 *= ratioFrom1;
+				szArr[i] = sizePerComp * ratioFrom1;
+				allSize += szArr[i];
+			}
+		}
+
+		QMutexLocker locker(&m_mutex);
+		uint8_t* res = m_allocator.allocate(allSize);
+		if (res == nullptr)
+			return false;
+
+		int cur = 0;
+		for (int i = 0; i < 4; ++i)
+		{
+			if (szArr[i] <= 0)
+				break;
+
+			pointers[i] = &res[cur];
+			cur += szArr[i];
+		}
+
+		m_hashPointerSize[res] = allSize;
+		return true;
+	}
+
+	void VideoMemoryManager::freeMem(uint8_t* p)
+	{
+		QMutexLocker locker(&m_mutex);
+		if (m_hashPointerSize.find(p) != m_hashPointerSize.end())
+		{
+			m_allocator.deallocate(p, m_hashPointerSize[p]);
+			m_hashPointerSize.remove(p);
+		}
 	}
 }

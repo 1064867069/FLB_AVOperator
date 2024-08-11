@@ -58,11 +58,11 @@ public:
 private:
 	SwsContext* m_pSwsCtx = nullptr;
 
+	FrameSPtr m_spLastFrame;
 	FrameSPtr m_spYuvFrame;
 	uint8_t* m_pYuvBuffer = nullptr;
 
 	enum AVPixelFormat m_yuvFormat = AV_PIX_FMT_YUV420P;
-	int64_t m_lastPts = AV_NOPTS_VALUE;
 	int m_objWidth = 0;
 	int m_objHeight = 0;
 
@@ -70,7 +70,7 @@ private:
 	bool m_frameDecoded = false;
 };
 
-using VProcessorUPtr = std::unique_ptr<VideoFrameProcesser>;
+using VFrameProcessorUPtr = std::unique_ptr<VideoFrameProcesser>;
 
 class FAVFrameBuffer
 {
@@ -101,6 +101,7 @@ private:
 using BufferUPtr = std::unique_ptr<FAVFrameBuffer>;
 
 class AudioListProcessor;
+class VideoProcessList;
 class FAVFileReader : public QObject
 {
 	Q_OBJECT
@@ -127,7 +128,8 @@ public:
 
 	bool decoding()const;
 
-	void addProcessor(AProcessSPtr);
+	void addAudioProcessor(AProcessSPtr);
+
 signals:
 	void durationSecondChanged(double);
 
@@ -159,6 +161,7 @@ private:
 	int64_t m_vDuration = AV_NOPTS_VALUE;
 
 	double m_seekSecond = -1;
+	double m_seekDecodeSecond = -1;
 
 	bool m_stop = true;
 	bool m_decoding = false;

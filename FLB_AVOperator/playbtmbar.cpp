@@ -76,6 +76,10 @@ void PlayBtmBar::initBtmBtns()
 
 	m_pCmbBoxSpeed = new SpeedCombobox(m_pPlayer, this);
 
+	m_pBtnSet = new SquareButton(this);
+	m_pBtnSet->setText("设置");
+	connect(m_pBtnSet, &QPushButton::clicked, this, &PlayBtmBar::setClicked);
+
 	m_iconFull = QIcon(":/FLB_AVOperator/icons/full.png");
 	m_iconNotFull = QIcon(":/FLB_AVOperator/icons/notfull.png");
 	m_pBtnFull = new SquareButton(this);
@@ -125,6 +129,8 @@ void PlayBtmBar::initLayout()
 	ui.horizontalLayout->addWidget(m_pBtnVolume);
 
 	ui.horizontalLayout->addWidget(m_pCmbBoxSpeed);
+
+	ui.horizontalLayout->addWidget(m_pBtnSet);
 
 	ui.horizontalLayout->addWidget(m_pBtnFull, 1);
 

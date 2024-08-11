@@ -97,6 +97,12 @@
     <ClCompile Include="speedcmbbox.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="videoprocess.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dlgvideoparam.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="avoperator.h">
@@ -135,12 +141,18 @@
     <QtMoc Include="speedcmbbox.h">
       <Filter>Header Files</Filter>
     </QtMoc>
+    <QtMoc Include="dlgvideoparam.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <QtUic Include="playbtmbar.ui">
       <Filter>Form Files</Filter>
     </QtUic>
     <QtUic Include="volumewidget.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="dlgvideoparam.ui">
       <Filter>Form Files</Filter>
     </QtUic>
   </ItemGroup>
@@ -158,6 +170,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="audiomanager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="videoprocess.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="videomanager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

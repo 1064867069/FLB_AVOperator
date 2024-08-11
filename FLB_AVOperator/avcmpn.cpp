@@ -39,6 +39,7 @@ void FAVProcessors::reset()noexcept
 	}
 }
 
+
 FFrame::FFrame()
 {
 
@@ -46,15 +47,96 @@ FFrame::FFrame()
 
 }
 
-FFrame::FFrame(const FFrame& f)
-{
-	m_pFrame = av_frame_clone(f.m_pFrame);
-	m_valid = f.m_valid;
-}
+//FFrame::FFrame(const FFrame& f) : FFrame()
+//{
+//	if (av_frame_copy(m_pFrame, f.m_pFrame) >= 0)
+//		m_valid = f.m_valid;
+//}
 
 FFrame::~FFrame()
 {
-	av_frame_free(&m_pFrame);
+	if (m_pFrame != nullptr)
+	{
+		if (this->isVideo())
+		{
+			video::VideoMemoryManager::getInstance()->freeMem(m_pFrame->data[0]);
+		}
+
+		av_frame_unref(m_pFrame);
+		av_frame_free(&m_pFrame);
+	}
+}
+
+std::shared_ptr<FFrame> FFrame::deepAFClone()const
+{
+	if (!this->isAudio())
+		return nullptr;
+
+	FrameSPtr res = std::make_shared<FFrame>();
+	auto dst_frame = res->m_pFrame;
+	auto src_frame = m_pFrame;
+
+	// Set properties from the source frame
+	dst_frame->nb_samples = src_frame->nb_samples;
+	dst_frame->format = src_frame->format;
+	dst_frame->channel_layout = src_frame->channel_layout;
+	dst_frame->sample_rate = src_frame->sample_rate;
+
+	// Allocate the necessary buffer for the destination frame
+	if (av_frame_get_buffer(dst_frame, 0) < 0)
+	{
+		return nullptr;
+	}
+
+	// Copy frame properties (metadata) from source to destination
+	if (av_frame_copy_props(dst_frame, src_frame) < 0)
+	{
+		return nullptr;
+	}
+
+	// Copy frame data from source to destination
+	if (av_frame_copy(dst_frame, src_frame) < 0)
+	{
+		fprintf(stderr, "Could not copy frame data\n");
+		return nullptr;
+	}
+
+	return res;
+
+}
+
+std::shared_ptr<FFrame> FFrame::deepVFClone()const
+{
+	if (!this->isVideo())
+		return nullptr;
+
+	FrameSPtr res = std::make_shared<FFrame>();
+	AVFrame* dst = res->m_pFrame;
+
+	if (dst == nullptr)
+		return nullptr;
+
+	// 复制帧的参数（宽度、高度、格式等）
+	if (av_frame_copy_props(dst, m_pFrame) < 0)
+		return nullptr;
+
+	//// 分配新的缓冲区来存储帧数据
+	//if (av_image_alloc(dst->data, dst->linesize, m_pFrame->width, m_pFrame->height,
+	//	static_cast<AVPixelFormat>(m_pFrame->format), 8) < 0)
+	//	return nullptr;
+
+	if (!video::VideoMemoryManager::getInstance()->allocateImageMem(dst->data, m_pFrame->linesize, m_pFrame->width,
+		m_pFrame->height, static_cast<AVPixelFormat>(m_pFrame->format)))
+		return nullptr;
+
+	// 复制数据到新的缓冲区
+	dst->height = m_pFrame->height;
+	dst->width = m_pFrame->width;
+	dst->format = m_pFrame->format;
+	memcpy(dst->linesize, m_pFrame->linesize, sizeof(int) * 8);
+	av_image_copy(dst->data, dst->linesize, (const uint8_t**)m_pFrame->data, m_pFrame->linesize,
+		static_cast<AVPixelFormat>(m_pFrame->format), m_pFrame->width, m_pFrame->height);
+	return res;
 }
 
 const AVFrame* FFrame::getAVFrame()const
@@ -106,6 +188,16 @@ int FFrame::height()const
 bool FFrame::valid()const
 {
 	return m_valid;
+}
+
+bool FFrame::isAudio()const
+{
+	return m_pFrame && m_pFrame->nb_samples > 0;
+}
+
+bool FFrame::isVideo()const
+{
+	return m_pFrame && m_pFrame->width && m_pFrame->height > 0;
 }
 
 int FFrame::swrFrame(SwrContext* swrCtx, unsigned char* outBuf, int max_size)
@@ -184,12 +276,12 @@ VideoFrameProcesser::VideoFrameProcesser(const FAVInfo* pInfo)
 
 void VideoFrameProcesser::processFrame(FrameSPtr spf)
 {
-	if (m_pSwsCtx == nullptr || !spf || spf->getPts() == m_lastPts)
+	if (m_pSwsCtx == nullptr || !spf || spf.get() == m_spLastFrame.get())
 	{
 		return;
 	}
 	spf->swsVideoFrame(m_pSwsCtx, m_objHeight, m_spYuvFrame);
-	m_lastPts = spf->getPts();
+	m_spLastFrame = spf;
 	m_frameDecoded = true;
 }
 

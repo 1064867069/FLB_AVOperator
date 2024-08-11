@@ -9,8 +9,15 @@
 #define ATTRIB_VERTEX 3
 #define ATTRIB_TEXTURE 4
 
-VideoOpenGLPlayer::VideoOpenGLPlayer(QWidget* p) :QOpenGLWidget(p), m_pPlayer(new FAVPlayer(this)),
-m_pPlayBtmWidget(new PlayBtmBar(m_pPlayer, this, this))
+
+
+
+VideoOpenGLPlayer::VideoOpenGLPlayer(QWidget* p) :
+	QOpenGLWidget(p),
+	m_pProcessList(new VideoProcessList(this)),
+	m_pPlayer(new FAVPlayer(this)),
+	m_pPlayBtmWidget(new PlayBtmBar(m_pPlayer, this, this)),
+	m_pDlgVParam(new DlgVideoParam(m_pProcessList, this))
 {
 	m_textureUniformY = 0;
 	m_textureUniformU = 0;
@@ -40,6 +47,10 @@ m_pPlayBtmWidget(new PlayBtmBar(m_pPlayer, this, this))
 
 	connect(&m_timerBtmHide, &QTimer::timeout, this, &VideoOpenGLPlayer::hideBtmWidget);
 	connect(&m_timerFramePlay, &QTimer::timeout, this, &VideoOpenGLPlayer::playFrame);
+	connect(m_pDlgVParam, &DlgVideoParam::paramUpdated, this, &VideoOpenGLPlayer::onParamsUpdated);
+	connect(m_pPlayBtmWidget, &PlayBtmBar::setClicked, m_pDlgVParam, &DlgVideoParam::show);
+
+	//connect(this, &VideoOpenGLPlayer::frameProcessed, this, &VideoOpenGLPlayer::playProcessedFrame);
 }
 
 VideoOpenGLPlayer::~VideoOpenGLPlayer()
@@ -66,6 +77,13 @@ void VideoOpenGLPlayer::bindReader(ReaderSPtr spr)
 		//m_timer.setInterval(1000 / info->m_avgfRate);
 		qDebug() << (bool)m_spReader;
 		m_spReader.swap(spr);
+
+		m_spFRdManager = VideoFrameReadManager::createObj(m_spReader, m_pProcessList);
+		if (m_spFRdManager)
+		{
+			connect(this, &VideoOpenGLPlayer::needProc, m_spFRdManager.get(), &VideoFrameReadManager::procVFrames);
+
+		}
 	}
 }
 
@@ -81,7 +99,7 @@ void VideoOpenGLPlayer::refreshHide()
 
 void VideoOpenGLPlayer::pause(bool isPause)
 {
-	if (!m_spReader)
+	if (!m_spFRdManager)
 	{
 		qDebug() << __FUNCTION__ << ": pause - No reader!";
 		return;
@@ -97,6 +115,9 @@ void VideoOpenGLPlayer::pause(bool isPause)
 	}
 	else
 	{
+		if (m_spFRdManager->isStopped())
+			emit needProc();
+
 		if (!m_timerFramePlay.isActive() && m_spReader->getInfo()->m_vIndx >= 0)
 		{
 			m_timerFramePlay.start();
@@ -109,10 +130,14 @@ void VideoOpenGLPlayer::pause(bool isPause)
 void VideoOpenGLPlayer::onAVStop()
 {
 	this->pause(true);
+	/*if (m_futureFrame.valid())
+		m_futureFrame.get();*/
 
-	m_upVideoProcessor.reset();
+	if (m_spFRdManager)
+		m_spFRdManager->stop();
+
+	m_upVideoFrameProcessor.reset();
 	m_spCurFrame.reset();
-	m_spNextFrame.reset();
 
 	this->update();
 }
@@ -120,7 +145,6 @@ void VideoOpenGLPlayer::onAVStop()
 void VideoOpenGLPlayer::onPauseSeek()
 {
 	m_spCurFrame.reset();
-	m_spNextFrame.reset();
 
 	//若干毫秒还获取不到当前帧就不用了
 	for (int i = 0; i < 10; ++i)
@@ -138,7 +162,11 @@ void VideoOpenGLPlayer::onPauseSeek()
 	if (!m_spCurFrame)
 		return;
 
-	m_upVideoProcessor->processFrame(m_spCurFrame);
+	if (m_spFRdManager)
+		m_spCurFrame = m_spFRdManager->updateLastFrame(m_spCurFrame);
+	else
+		m_spCurFrame = m_pProcessList->processFrame(m_spCurFrame);
+	m_upVideoFrameProcessor->processFrame(m_spCurFrame);
 	this->update();
 }
 
@@ -148,8 +176,8 @@ void VideoOpenGLPlayer::onSeek()
 		return;
 
 	m_spCurFrame.reset();
-	m_spNextFrame.reset();
 	this->pause(true);
+	m_spFRdManager->clear();
 }
 
 void VideoOpenGLPlayer::initializeGL()
@@ -387,8 +415,8 @@ void VideoOpenGLPlayer::resetGLVertex(int window_W, int window_H)
 
 bool VideoOpenGLPlayer::initProcessor()
 {
-	if (m_upVideoProcessor)
-		m_upVideoProcessor.reset();
+	if (m_upVideoFrameProcessor)
+		m_upVideoFrameProcessor.reset();
 
 	if (!m_spReader)
 		return false;
@@ -400,51 +428,39 @@ bool VideoOpenGLPlayer::initProcessor()
 	}
 	m_timerFramePlay.setInterval(std::max(1000 / info->m_avgfRate * 0.6, 1.0));
 
-	m_upVideoProcessor = std::make_unique<VideoFrameProcesser>(m_spReader->getInfo());
-	return m_upVideoProcessor->valid();
+	m_upVideoFrameProcessor = std::make_unique<VideoFrameProcesser>(m_spReader->getInfo());
+	return m_upVideoFrameProcessor->valid();
 }
 
 void VideoOpenGLPlayer::playFrame()
 {
+	if (!m_spFRdManager)
+		return;
+
 	double preSecond = -1;
 	if (m_spCurFrame)
 		preSecond = m_spCurFrame->getSecond();
 
-	if (!m_spCurFrame)
-	{
-		m_spCurFrame = m_spReader->popVideoFrame();
-
-	}
-	if (!m_spNextFrame)
-	{
-		m_spNextFrame = m_spReader->popVideoFrame();
-	}
-
 	auto secnd = m_pPlayer->getCurSecond();
-	while (m_spNextFrame && m_spNextFrame->getSecond() < secnd)
-	{
-		m_spCurFrame = m_spNextFrame;
-		m_spNextFrame = m_spReader->popVideoFrame();
-		/*qDebug() << "获得帧时间：" << m_spNextFrame->getSecond();
-		qDebug() << "pts = " << m_spNextFrame->getPts();*/
-	}
+	auto frame = m_spFRdManager->getFrame(secnd);
+	if (frame)
+		m_spCurFrame = frame;
 
-
-	if (!m_spCurFrame || m_spCurFrame->getSecond() == preSecond)
+	if (!frame || m_spCurFrame->getSecond() == preSecond)
 	{
-		if (m_spCurFrame && !m_spNextFrame && !m_spReader->decoding())
+		if (m_spCurFrame && !frame && !m_spReader->decoding())
 		{
-			m_upVideoProcessor->reset();
+			m_upVideoFrameProcessor->reset();
 			this->update();
 			//this->pause(true);
 			emit videoEnd();
 		}
+
 		return;
 	}
 
-	m_upVideoProcessor->processFrame(m_spCurFrame);
-
-	int w = m_upVideoProcessor->objWidth(), h = m_upVideoProcessor->objHeight();
+	m_upVideoFrameProcessor->processFrame(m_spCurFrame);
+	int w = m_upVideoFrameProcessor->objWidth(), h = m_upVideoFrameProcessor->objHeight();
 	if (m_width <= 0 || m_height <= 0 || m_width != w || m_height != h)
 	{
 		this->setVideoWidth(w, h);
@@ -457,9 +473,9 @@ void VideoOpenGLPlayer::paintGL()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	if (m_upVideoProcessor)
+	if (m_upVideoFrameProcessor)
 	{
-		auto bufferYUV = m_upVideoProcessor->getYuvBuffer();
+		auto bufferYUV = m_upVideoFrameProcessor->getYuvBuffer();
 		if (bufferYUV != nullptr)
 		{
 			m_pShaderProgram->bind();
@@ -506,8 +522,8 @@ void VideoOpenGLPlayer::paintGL()
 void VideoOpenGLPlayer::mouseMoveEvent(QMouseEvent* event)
 {
 	QOpenGLWidget::mouseMoveEvent(event);
-
-	this->refreshHide();
+	if (m_pPlayer->state() != PlayState::Stop)
+		this->refreshHide();
 }
 
 void VideoOpenGLPlayer::keyPressEvent(QKeyEvent* event)
@@ -562,6 +578,17 @@ void VideoOpenGLPlayer::hideBtmWidget()
 	}
 }
 
+void VideoOpenGLPlayer::onParamsUpdated()
+{
+	if (m_spCurFrame)
+	{
+		m_spCurFrame = m_spFRdManager->updateLastFrame();
+		m_upVideoFrameProcessor->processFrame(m_spCurFrame);
+
+		this->update();
+	}
+}
+
 PlayBtmBar* VideoOpenGLPlayer::getPlayBtmWidget()
 {
 	return m_pPlayBtmWidget;
@@ -579,6 +606,29 @@ void VideoOpenGLPlayer::resetBtmWidget()
 	m_pPlayBtmWidget->show();
 }
 
+//void VideoOpenGLPlayer::playProcessedFrame()
+//{
+//	if (!m_futureFrame.valid())
+//		return;
+//
+//	FrameSPtr curf = m_futureFrame.get();
+//	if (!curf)
+//		return;
+//
+//
+//
+//	m_spCurFrameProcessed = curf;
+//	m_upVideoFrameProcessor->processFrame(m_spCurFrameProcessed);
+//
+//	int w = m_upVideoFrameProcessor->objWidth(), h = m_upVideoFrameProcessor->objHeight();
+//	if (m_width <= 0 || m_height <= 0 || m_width != w || m_height != h)
+//	{
+//		this->setVideoWidth(w, h);
+//	}
+//
+//	this->update();
+//}
+
 void VideoOpenGLPlayer::setVideoWidth(int width, int height)
 {
 	if (width <= 0 || height <= 0) return;
@@ -592,3 +642,149 @@ void VideoOpenGLPlayer::setVideoWidth(int width, int height)
 	}
 }
 
+void VideoOpenGLPlayer::addVProcessor(const VProcessSPtr& spProc)
+{
+	m_pProcessList->addVProcessor(spProc);
+}
+
+
+VideoFrameReadManager::VideoFrameReadManager() : QObject(nullptr)
+{
+	this->moveToThread(&m_threadProcFrame);
+	m_threadProcFrame.start();
+}
+
+VideoFrameReadManager::~VideoFrameReadManager()
+{
+	this->stop();
+	m_threadProcFrame.quit();
+	m_threadProcFrame.wait();
+}
+
+std::shared_ptr<VideoFrameReadManager> VideoFrameReadManager::createObj(ReaderSPtr spr, VideoProcessList* pPl)
+{
+	if (!spr)
+		return nullptr;
+
+	auto frm = new VideoFrameReadManager();
+	auto res = std::shared_ptr<VideoFrameReadManager>(frm);
+	if (frm)
+	{
+		res->m_spReader = spr;
+		res->m_pProcessList = pPl;
+	}
+
+	//connect(res.get(), &VideoFrameReadManager::needThStart, &res->m_threadProcFrame, &QThread::start);
+	return res;
+}
+
+bool VideoFrameReadManager::isStopped()const
+{
+	QMutexLocker locker(&m_mutex);
+	return m_stop;
+}
+
+FrameSPtr VideoFrameReadManager::getFrame(double s)
+{
+	QMutexLocker locker(&m_mutex);
+	FrameSPtr res;
+	/*if (m_listOrgFrames.size() > 0)
+		qDebug() << m_listOrgFrames[0]->getSecond() << s;*/
+	while (m_listOrgFrames.size() > 0 && m_listOrgFrames[0]->getSecond() <= s)
+	{
+		m_spLastFrame = m_listOrgFrames.front();
+		m_listOrgFrames.pop_front();
+
+		res = m_listProcFrames.front();
+		m_listProcFrames.pop_front();
+	}
+
+	return res;
+}
+
+void VideoFrameReadManager::procVFrames()
+{
+	if (!m_spReader || !m_pProcessList)
+		return;
+
+	m_stop = false;
+
+	FrameSPtr tmp;
+	while (!m_stop)
+	{
+		if (m_listOrgFrames.size() > 5)
+		{
+			QThread::msleep(5);
+			continue;
+		}
+
+		tmp = m_spReader->popVideoFrame();
+		if (tmp)
+		{
+			auto procf = m_pProcessList ? m_pProcessList->processFrame(tmp) : tmp;
+			if (procf)
+			{
+				QMutexLocker locker(&m_mutex);
+				m_listOrgFrames.append(tmp);
+				m_listProcFrames.append(procf);
+
+				while (m_listOrgFrames.size() > 1 && m_listOrgFrames[0]->getSecond() > tmp->getSecond())
+				{
+					m_listOrgFrames.pop_front();
+					m_listProcFrames.pop_front();
+				}
+			}
+		}
+		else
+		{
+			QThread::msleep(5);
+		}
+	}
+
+	QMutexLocker locker(&m_mutex);
+	m_stop = true;
+	this->clear(false);
+	m_condStop.wakeAll();
+}
+
+void VideoFrameReadManager::stop()
+{
+	QMutexLocker locker(&m_mutex);
+	if (!m_stop)
+	{
+		m_stop = true;
+		m_condStop.wait(&m_mutex);
+	}
+}
+
+void VideoFrameReadManager::clear(bool lck)
+{
+	auto clrNoLock = [this]()->void
+	{
+		m_spLastFrame.reset();
+		m_listOrgFrames.clear();
+		m_listProcFrames.clear();
+	};
+
+	if (lck)
+	{
+		QMutexLocker locker(&m_mutex);
+		clrNoLock();
+	}
+	else
+	{
+		clrNoLock();
+	}
+
+}
+
+FrameSPtr VideoFrameReadManager::updateLastFrame(const FrameSPtr& spf)
+{
+	QMutexLocker locker(&m_mutex);
+	if (spf)
+		m_spLastFrame = spf;
+
+	if (m_spLastFrame && m_pProcessList)
+		return m_pProcessList->processFrame(m_spLastFrame);
+	return nullptr;
+}

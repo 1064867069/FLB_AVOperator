@@ -204,7 +204,7 @@ constexpr float audio::AudioSpeedScale<T>::getPeriodInRatio(float speed)
 template<class T>
 int audio::AudioSpeedScale<T>::downSample(T* out, T* in, int samp, int skip)
 {
-	using UpperType = UpperInType<T>::type;
+	using UpperType = fmttp::UpperInType<T>::type;
 
 	int dwn_samples = 0;
 	if (std::numeric_limits<UpperType>::max() > std::numeric_limits<T>::max())
@@ -269,7 +269,7 @@ int audio::AudioSpeedScale<T>::getBestPeriod(T* data, int samp, int minp, int ma
 
 	int bestPeriod = pMin;
 
-	using UpperType = UpperInType<T>::type;
+	using UpperType = fmttp::UpperInType<T>::type;
 	UpperType minDiff;
 
 

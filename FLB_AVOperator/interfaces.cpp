@@ -46,3 +46,20 @@ FrameSPtr IAudioFrameProcessor::createNewFrameBySample(const FAVInfo* pInfo, int
 
 	return av_frame_get_buffer(paf, 0) < 0 ? FrameSPtr() : spf;
 }
+
+IVideoFrameProcessor::IVideoFrameProcessor(QObject* p) : QObject(p)
+{
+
+}
+
+
+void IVideoFrameProcessor::setFrameValid(FFrame* pf)
+{
+	if (pf != nullptr)
+		pf->m_valid = true;
+}
+
+AVFrame* IVideoFrameProcessor::getAVFrame(FFrame* pf)
+{
+	return pf != nullptr ? pf->m_pFrame : nullptr;
+}

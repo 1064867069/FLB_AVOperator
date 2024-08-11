@@ -16,7 +16,7 @@ m_spSpeedProc(std::make_shared<AudioSpeedProcessor>())
 		connect(this, &FAVPlayer::stopped, m_pVideoPlayer, &VideoOpenGLPlayer::onAVStop);
 	}
 
-	m_spReader->addProcessor(m_spSpeedProc);
+	m_spReader->addAudioProcessor(m_spSpeedProc);
 
 	auto audioPlayer = AudioSDLPlayer::getInstance();
 	connect(audioPlayer, &AudioSDLPlayer::audioEnd, this, &FAVPlayer::onAudioEnd);
@@ -155,7 +155,7 @@ bool FAVPlayer::getAudioEnd()const
 
 void FAVPlayer::addProcessor(const AProcessSPtr& sp)
 {
-	m_spReader->addProcessor(sp);
+	m_spReader->addAudioProcessor(sp);
 }
 
 float FAVPlayer::setSpeed(float speed)

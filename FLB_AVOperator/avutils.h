@@ -4,6 +4,8 @@
 #include <functional>
 //#include "avtemplates.h"
 #include <QString>
+#include <QMutex>
+#include <QHash>
 
 extern "C"
 {
@@ -22,9 +24,13 @@ class FFrame
 public:
 	explicit FFrame();
 
-	FFrame(const FFrame&);
+	FFrame(const FFrame&) = delete;
 
 	~FFrame();
+
+	std::shared_ptr<FFrame> deepAFClone()const;
+
+	std::shared_ptr<FFrame> deepVFClone()const;
 
 	const AVFrame* getAVFrame()const;
 
@@ -33,6 +39,10 @@ public:
 	int decode(AVCodecContext*, AVStream*);
 
 	bool valid()const;
+
+	bool isAudio()const;
+
+	bool isVideo()const;
 
 	int64_t getPts()const;
 
@@ -55,6 +65,7 @@ private:
 	bool m_valid = false;
 
 	friend class IAudioFrameProcessor;
+	friend class IVideoFrameProcessor;
 };
 using FrameSPtr = std::shared_ptr<FFrame>;
 
@@ -94,6 +105,8 @@ struct FAVInfo
 };
 
 
+
+
 namespace audio {
 
 	class IAudioManager;
@@ -112,6 +125,37 @@ namespace audio {
 
 	//int getAudioFrameSize(int aIndex, AVFormatContext* inFmtCtx, AVCodecContext* decCtx);
 };
+
+namespace video
+{
+	class VideoMemoryManager
+	{
+	public:
+		static VideoMemoryManager* getInstance();
+
+		bool allocateImageMem(uint8_t* pointers[4], int linesizes[4],
+			int w, int h, enum AVPixelFormat pix_fmt);
+
+		void freeMem(uint8_t*);
+	private:
+		QHash<uint8_t*, int> m_hashPointerSize;
+		std::allocator<uint8_t> m_allocator;
+
+		QMutex m_mutex;
+
+	private:
+		VideoMemoryManager() = default;
+		VideoMemoryManager(const VideoMemoryManager&) = delete;
+		VideoMemoryManager& operator=(const VideoMemoryManager&) = delete;
+
+		~VideoMemoryManager();
+	};
+
+	using SingleDataFunc = std::function<void(uint8_t*)>;
+
+
+	void seriesProc(uint8_t* data, int size, int per_size, SingleDataFunc func);
+}
 
 #endif // !AVUTILS_H
 
