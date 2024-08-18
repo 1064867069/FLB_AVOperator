@@ -26,7 +26,7 @@ class VideoFrameProcesser;
 class PlayBtmBar;
 
 
-using ReaderSPtr = std::shared_ptr<FAVFileReader>;
+using ReaderSPtr = std::shared_ptr<IAVReader>;
 using FrameSPtr = std::shared_ptr<FFrame>;
 using VFrameProcessorUPtr = std::unique_ptr<VideoFrameProcesser>;
 
@@ -52,7 +52,7 @@ public slots:
 
 
 private:
-	VideoFrameReadManager();
+	VideoFrameReadManager(int fut_lim = 8);
 
 	QThread m_threadProcFrame;
 	mutable QMutex m_mutex;
@@ -64,7 +64,11 @@ private:
 
 	QList<FrameSPtr> m_listOrgFrames;
 	QList<FrameSPtr> m_listProcFrames;
+	QList<std::shared_future<void>> m_listFuture;
 
+	double m_secondGap = 0;
+	double m_second = -1000;
+	const int m_limFut;
 	bool m_stop = true;
 };
 
@@ -83,7 +87,7 @@ public:
 
 	FAVPlayer* getPlayer();
 
-
+	PlayBtmBar* getPlayBtmWidget();
 
 public slots:
 	bool initProcessor();
@@ -104,8 +108,6 @@ public slots:
 	void hideBtmWidget();
 
 	void onParamsUpdated();
-
-	PlayBtmBar* getPlayBtmWidget();
 protected slots:
 	void initializeGL() Q_DECL_OVERRIDE;
 	void resizeGL(int window_W, int window_H) Q_DECL_OVERRIDE;

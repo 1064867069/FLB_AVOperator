@@ -2,8 +2,11 @@
 #include "avutils.h"
 #include "avtemplates.h"
 #include "videomanager.h"
+
 #include <future>
 #include <algorithm>
+
+
 
 VideoProcessList::VideoProcessList(QObject* p) : IVideoFrameProcessor(p)
 {
@@ -61,7 +64,7 @@ FrameSPtr VideoBrightAdjust::processFrame(FrameSPtr spf)
 
 	int depth = desc->comp[0].depth;
 	float co = static_cast<float>((1 << depth) - 1) / 255;
-	int maxV = 235 * co, minV = 16 * co;
+	int maxV = 255 * co, minV = 0;
 	auto videoManager = video::IVideoManager::getManagerByDepth(depth);
 	if (videoManager == nullptr)
 		return spf;
@@ -116,7 +119,7 @@ void VideoBrightAdjust::setBright(float b)
 	m_bright = std::max(-1.0f, b);
 	m_bright = std::min(1.0f, m_bright);
 }
-
+#include <qthread.h>
 VideoChromAdjust::VideoChromAdjust(QObject* p) : IVideoFrameProcessor(p)
 {
 
@@ -137,7 +140,9 @@ FrameSPtr VideoChromAdjust::processFrame(FrameSPtr spf)
 	}
 
 	int depth = desc->comp[0].depth;
-	int maxV = (1 << depth) - 1, minV = 0;
+
+	int minVal = 16 * ((1 << depth) - 1) / 255;
+	int maxV = 240 * ((1 << depth) - 1) / 255, maxY = 235 * ((1 << depth) - 1) / 255;
 	auto videoManager = video::IVideoManager::getManagerByDepth(depth);
 	if (videoManager == nullptr)
 		return spf;
@@ -148,14 +153,92 @@ FrameSPtr VideoChromAdjust::processFrame(FrameSPtr spf)
 
 	pvf = this->getAVFrame(res.get());
 
-	auto func = videoManager->AddDecPerFunc(minV, maxV, m_chrom);
+	/*auto func = videoManager->AddDecPerFunc(minVal, maxV, m_chrom);
 	for (int i = 1; i < 3; ++i)
 	{
-		int height = pvf->height * pvf->linesize[i] / pvf->linesize[0];
-		int width = pvf->width * pvf->linesize[i] / pvf->linesize[0];
+		int height = (pvf->height >> desc->log2_chroma_h);
+		int width = (pvf->width >> desc->log2_chroma_w);
 		for (int j = 0; j < height; ++j)
 			video::seriesProc(&pvf->data[i][j * pvf->linesize[i]], width, videoManager->perSize(), func);
-	}
+	}*/
+
+	videoManager->chromAdjust(pvf, desc, m_chrom, depth);
+	/*auto data = pvf->data;
+	int ii, jj, yi, ui, vi, y, y2, u, v, r, g, b, gap1, gap2, * pMin, * pMax, * pMid;
+	int yi0 = 0, ui0 = 0, vi0 = 0;
+	int hStep = (1 << desc->log2_chroma_h), wStep = (1 << desc->log2_chroma_w) * videoManager->perSize();
+	std::tuple<int, int, int> tp3;
+	for (int i = 0; i < pvf->height; i += hStep)
+	{
+		for (int j = 0; j < pvf->width * videoManager->perSize(); j += wStep)
+		{
+			jj = (j >> desc->log2_chroma_w);
+			yi = yi0 + j, ui = ui0 + jj, vi = vi0 + jj;
+			y = videoManager->getVal(&data[0][yi]);
+			u = videoManager->getVal(&data[1][ui]);
+			v = videoManager->getVal(&data[2][vi]);
+			tp3 = video::getRGB_BT601(y, u, v);
+			std::tie(r, g, b) = tp3;
+
+			pMin = (r > g ? &g : &r), pMax = (r > g ? &r : &g);
+			pMin = *pMin > b ? &b : pMin;
+			pMax = *pMax > b ? pMax : &b;
+			for (auto* p : { &r,&g,&b })
+				if (p != pMin && p != pMax)
+					pMid = p;
+
+			gap1 = ((*pMax - *pMid));
+			gap2 = ((*pMid - *pMin));
+			gap1 *= m_chrom;
+			gap2 *= m_chrom;
+			if (gap1 == 0 && gap2 == 0)
+				continue;
+
+			*pMax += gap1;
+			*pMin -= gap2;
+			tp3 = video::getYUV_BT601(r, g, b);
+			std::tie(y2, u, v) = tp3;
+			y2 = video::clamp(y2, minVal, maxY) - y;
+			u = video::clamp(u, minVal, maxV);
+			v = video::clamp(v, minVal, maxV);
+			for (int k1 = 0; k1 < hStep; ++k1)
+			{
+				int yi2 = yi + k1 * pvf->linesize[0];
+
+				for (int k2 = 0; k2 < wStep; k2 += videoManager->perSize())
+				{
+					y = videoManager->getVal(&data[0][yi2 + k2]) + y2;
+					videoManager->setVal(&data[0][yi2 + k2], y);
+				}
+			}
+			videoManager->setVal(&data[1][ui], u);
+			videoManager->setVal(&data[2][vi], v);
+		}
+		yi0 += (pvf->linesize[0] << desc->log2_chroma_h), ui0 += pvf->linesize[1], vi0 += pvf->linesize[2];
+	}*/
+
+	/*int h = (pvf->height >> desc->log2_chroma_h), w = (pvf->width >> desc->log2_chroma_w);
+	int u, v, mid, gap1, gap2, idx, * pMin, * pMax;
+	for (int i = 0; i < h; ++i)
+	{
+		for (int j = 0; j < w; ++j)
+		{
+			idx = i * pvf->linesize[1] + j * videoManager->perSize();
+			u = videoManager->getVal(&pvf->data[1][idx]);
+			v = videoManager->getVal(&pvf->data[2][idx]);
+
+			pMax = u > v ? &u : &v;
+			pMin = pMax == &u ? &v : &u;
+
+			mid = (u + v) / 2;
+			gap1 = (*pMax - mid) * m_chrom;
+			gap2 = (mid - *pMin) * m_chrom;
+			*pMax += gap1;
+			*pMin -= gap2;
+			videoManager->setVal(&pvf->data[1][idx], clamp(u, minVal, maxV));
+			videoManager->setVal(&pvf->data[2][idx], clamp(v, minVal, maxV));
+		}
+	}*/
 
 	return res;
 }

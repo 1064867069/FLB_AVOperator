@@ -28,6 +28,7 @@ signals:
 private:
 	std::shared_ptr<VolumnAdjustProcessor> m_spVolProc;
 
+	FAVPlayer* m_pPlayer;
 	QWidget* m_pRelatedWidget = nullptr;
 private:
 	Ui::Form ui;

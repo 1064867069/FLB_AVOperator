@@ -1,12 +1,14 @@
 #include "avoperator.h"
 #include "videoopenglplayer.h"
 #include "audioprocess.h"
+#include "avreader.h"
+#include "playbtmbar.h"
 
 #include <QDebug>
 #include <QDateTime>
 
 FAVPlayer::FAVPlayer(QObject* p) : QObject(p), m_spReader(std::make_shared<FAVFileReader>()),
-m_spSpeedProc(std::make_shared<AudioSpeedProcessor>())
+m_spSpeedProc(std::make_shared<AudioSpeedProcessor>()), m_spListProc(std::make_shared<AudioListProcessor>())
 {
 	m_pVideoPlayer = dynamic_cast<VideoOpenGLPlayer*>(p);
 	if (m_pVideoPlayer != nullptr)
@@ -16,15 +18,13 @@ m_spSpeedProc(std::make_shared<AudioSpeedProcessor>())
 		connect(this, &FAVPlayer::stopped, m_pVideoPlayer, &VideoOpenGLPlayer::onAVStop);
 	}
 
-	m_spReader->addAudioProcessor(m_spSpeedProc);
-
 	auto audioPlayer = AudioSDLPlayer::getInstance();
 	connect(audioPlayer, &AudioSDLPlayer::audioEnd, this, &FAVPlayer::onAudioEnd);
 
-	m_spReader->moveToThread(&m_threadDecode);
-	connect(this, &FAVPlayer::started, m_spReader.get(), &FAVFileReader::readFrames);
-	connect(m_spReader.get(), &FAVFileReader::durationSecondChanged, this, &FAVPlayer::setDuration);
-	connect(m_spReader.get(), &FAVFileReader::seekFinished, this, &FAVPlayer::onSeekFinished);
+	/*m_spReader->moveToThread(&m_threadDecode);
+
+	m_spReader->playerSetHandle(this);*/
+	m_spListProc->addProcessor(m_spSpeedProc);
 	m_threadDecode.start();
 }
 
@@ -36,15 +36,21 @@ FAVPlayer::~FAVPlayer()
 	m_threadDecode.wait();
 }
 
-bool FAVPlayer::openFile(const QString& filePath)
+bool FAVPlayer::openPath(const QString& path, const ReaderSPtr& spReader)
 {
-	if (filePath == m_spReader->getInfo()->m_filePath && m_spReader->getInfo()->m_isOpen)
-		return true;
+	if (!spReader)
+		return false;
 
 	this->stop();
-	if (!m_spReader->openFile(filePath))
+	m_spReader = spReader;
+	m_spReader->playerSetHandle(this);
+	m_spReader->setListProcessor(m_spListProc);
+	m_spReader->moveToThread(&m_threadDecode);
+	connect(this, &FAVPlayer::started, m_spReader.get(), &IAVReader::readFrames);
+
+	if (!m_spReader->openPath(path))
 	{
-		qDebug() << __FUNCTION__ << filePath << " open failed!";
+		qDebug() << __FUNCTION__ << path << " open failed!";
 		return false;
 	}
 
@@ -54,22 +60,67 @@ bool FAVPlayer::openFile(const QString& filePath)
 	{
 		if (m_pVideoPlayer != nullptr)
 		{
+			m_pVideoPlayer->bindReader(m_spReader);
 			if (!m_pVideoPlayer->initProcessor())
 				return false;
 		}
 	}
 
+	return true;
+}
+
+bool FAVPlayer::openFile(const QString& filePath)
+{
+	if (m_spReader && filePath == m_spReader->getInfo()->m_avPath && m_spReader->getInfo()->m_isOpen)
+		return true;
+
+	/*if (!QFile::exists(filePath))
+		return false;*/
+
+	if (!this->openPath(filePath, std::make_shared<FAVFileReader>()))
+		return false;
+
+	auto info = m_spReader->getInfo();
+
 	m_state = PlayState::Pause;
-	m_audioEnd = info->m_aIndx < 0;
-	m_videoEnd = info->m_vIndx < 0;
+	m_bAudioEnd = info->m_aIndx < 0;
+	m_bVideoEnd = info->m_vIndx < 0;
 
 	float speed = m_spSpeedProc->getSpeed();
 	m_spSpeedProc->setAVInfo(*m_spReader->getInfo());
-	m_spSpeedProc->setSpeed(speed, info->m_aIndx >= 0 ? info->m_frameSize : 0);
+
+	if (m_pVideoPlayer)
+	{
+		auto btm = m_pVideoPlayer->getPlayBtmWidget();
+		btm->onSeekAble(m_spReader->seekAble());
+	}
 
 	emit started();
 	return true;
 }
+
+//bool FAVPlayer::openUrl(const QString& urlPath)
+//{
+//	if (m_spReader && urlPath == m_spReader->getInfo()->m_avPath && m_spReader->getInfo()->m_isOpen)
+//		return true;
+//
+//	if (!this->openPath(urlPath, std::make_shared<FAVUrlReader>()))
+//		return false;
+//
+//	auto info = m_spReader->getInfo();
+//
+//	m_state = PlayState::Pause;
+//	m_spSpeedProc->setSpeed(1.0f, 0);
+//
+//	if (m_pVideoPlayer)
+//	{
+//		auto btm = m_pVideoPlayer->getPlayBtmWidget();
+//		btm->onSeekAble(m_spReader->seekAble());
+//	}
+//
+//	emit started();
+//	return true;
+//}
 
 void FAVPlayer::stop()
 {
@@ -83,8 +134,8 @@ void FAVPlayer::stop()
 	m_curSecond = -1;
 	m_lastCntTime = AV_NOPTS_VALUE;
 	m_durationSecond = -1;
-	m_audioEnd = true;
-	m_videoEnd = true;
+	m_bAudioEnd = true;
+	m_bVideoEnd = true;
 
 	m_spReader->stop();
 	qDebug() << "播放器关闭！";
@@ -111,7 +162,7 @@ void FAVPlayer::playCont()
 {
 	if (m_state == PlayState::Stop)
 	{
-		this->openFile(m_spReader->getInfo()->m_filePath);
+		this->openFile(m_spReader->getInfo()->m_avPath);
 	}
 
 	if (m_state == PlayState::Pause)
@@ -150,12 +201,12 @@ double FAVPlayer::getDuration()const
 
 bool FAVPlayer::getAudioEnd()const
 {
-	return m_audioEnd;
+	return m_bAudioEnd;
 }
 
 void FAVPlayer::addProcessor(const AProcessSPtr& sp)
 {
-	m_spReader->addAudioProcessor(sp);
+	m_spListProc->addProcessor(sp);
 }
 
 float FAVPlayer::setSpeed(float speed)
@@ -165,7 +216,7 @@ float FAVPlayer::setSpeed(float speed)
 
 void FAVPlayer::seekProp(double p)
 {
-	if (!m_spReader->getInfo()->m_isOpen || m_state == PlayState::Stop || m_durationSecond <= 0)
+	if (!m_spReader->getInfo()->m_isOpen || m_state == PlayState::Stop || m_durationSecond <= 0 || !m_spReader->seekAble())
 		return;
 
 	p = std::max(0.0, p);
@@ -177,9 +228,9 @@ void FAVPlayer::seekProp(double p)
 	if (m_pVideoPlayer != nullptr)
 		m_pVideoPlayer->onSeek();
 
-	m_spReader->seekSecond(m_durationSecond * p);
+	emit seek(m_durationSecond * p);
 
-	m_audioEnd = false;
+	m_bAudioEnd = false;
 	if (m_state == PlayState::Play)
 	{
 		sdlPlayer->cont();
@@ -246,19 +297,19 @@ void FAVPlayer::onAudioEnd(FAVPlayer* pPlayer)
 {
 	if (this == pPlayer)
 	{
-		m_audioEnd = true;
+		m_bAudioEnd = true;
 		this->check_stop();
 	}
 }
 
 void FAVPlayer::onVideoEnd()
 {
-	m_videoEnd = true;
+	m_bVideoEnd = true;
 	this->check_stop();
 }
 
 void FAVPlayer::check_stop()
 {
-	if (m_audioEnd && m_videoEnd)
+	if (m_bAudioEnd && m_bVideoEnd)
 		this->stop();
 }

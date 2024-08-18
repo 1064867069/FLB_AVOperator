@@ -14,6 +14,11 @@ bool FAVInfo::equalAudioInfo(const FAVInfo& info)const
 	return false;
 }
 
+FAVProcessors::~FAVProcessors()
+{
+	this->reset();
+}
+
 void FAVProcessors::reset()noexcept
 {
 	if (m_pADecCtx != nullptr)

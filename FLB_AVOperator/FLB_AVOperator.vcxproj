@@ -142,6 +142,8 @@
     <QtMoc Include="avfilemanager.h" />
   </ItemGroup>
   <ItemGroup>
+    <QtMoc Include="avreader.h" />
+    <ClInclude Include="threadpool.h" />
     <ClInclude Include="videomanager.h" />
     <ClInclude Include="videoprocess.h" />
     <QtMoc Include="volumewidget.h" />

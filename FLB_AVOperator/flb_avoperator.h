@@ -23,12 +23,16 @@ private:
 
 private slots:
 	void openFile(QString fp);
+	//void openUrl(QString url);
 
 	void onFullClicked();
 private:
 	VideoOpenGLPlayer* m_pVideoWidget;
 
-	PlayListWidget* m_pPlayList;
+	QTabWidget* m_pTabPlayList;
+
+	PlayListWidget* m_pLocalPlayList;
+	PlayListWidget* m_pOnlinePlayList;
 private:
 	Ui::FLB_AVOperatorClass ui;
 };

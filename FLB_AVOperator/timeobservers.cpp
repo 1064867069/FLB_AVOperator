@@ -31,7 +31,9 @@ void SliderController::onSliderReleased()
 void SliderController::onDurationChanged(double d)
 {
 	if (m_pressed || d <= 0)
+	{
 		return;
+	}
 
 	m_duration = d;
 	this->resetSlider();
@@ -39,7 +41,7 @@ void SliderController::onDurationChanged(double d)
 
 void SliderController::onSecondChanged(double s)
 {
-	if (m_pressed || s < 0)
+	if (m_pressed || s < 0 || m_duration <= 0)
 		return;
 
 	m_second = s;
@@ -54,8 +56,11 @@ void SliderController::resetSlider()
 	if (m_duration <= 0 || m_second < 0)
 	{
 		m_pSliderObj->setValue(m_pSliderObj->minimum());
+		m_pSliderObj->setEnabled(false);
 		return;
 	}
+
+	m_pSliderObj->setEnabled(true);
 
 	int gap = m_pSliderObj->maximum() - m_pSliderObj->minimum();
 	m_pSliderObj->setValue(m_pSliderObj->minimum() + gap * m_second / m_duration);
@@ -91,7 +96,7 @@ void LabelTimeStampObserver::resetStamp()
 void LabelTimeStampObserver::onSecondChanged(double sec)
 {
 	sec = round(sec);
-	if (sec == m_second || sec < 0)
+	if (sec == m_second || sec < 0 || m_duration <= 0)
 		return;
 
 	m_second = sec;
@@ -105,7 +110,7 @@ void LabelTimeStampObserver::onSecondChanged(double sec)
 void LabelTimeStampObserver::onDurationChanged(double dur)
 {
 	dur = round(dur);
-	if (dur == m_duration || dur < 0)
+	if (dur == m_duration)
 		return;
 
 	m_duration = dur;

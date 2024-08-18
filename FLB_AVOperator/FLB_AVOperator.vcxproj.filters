@@ -144,6 +144,9 @@
     <QtMoc Include="dlgvideoparam.h">
       <Filter>Header Files</Filter>
     </QtMoc>
+    <QtMoc Include="avreader.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <QtUic Include="playbtmbar.ui">
@@ -176,6 +179,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="videomanager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="threadpool.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

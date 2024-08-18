@@ -3,20 +3,21 @@
 
 #include <QWidget>
 #include <QPushButton>
+#include "interfaces.h"
 
-class LocalPlayTable;
+class PathPlayTable;
 
 class PlayListWidget :public QWidget
 {
 	Q_OBJECT
 public:
-	explicit PlayListWidget(QWidget* p = nullptr);
+	explicit PlayListWidget(IAVPathManager* pm, QWidget* p = nullptr);
 
-	const LocalPlayTable* getPlayTable()const;
+	const PathPlayTable* getPlayTable()const;
 
 
 private:
-	LocalPlayTable* m_pPlayTable;
+	PathPlayTable* m_pPlayTable;
 	QPushButton* m_pButtonAddFile;
 };
 

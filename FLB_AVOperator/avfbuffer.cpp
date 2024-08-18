@@ -1,4 +1,5 @@
 #include "avoperator.h"
+#include "avreader.h"
 
 FAVFrameBuffer::FAVFrameBuffer(size_t cap) :m_limCapacity(cap)
 {

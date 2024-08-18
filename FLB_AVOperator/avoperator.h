@@ -33,9 +33,9 @@ struct FAVProcessors
 	AVStream* m_pSrcAudio = nullptr; // 源文件的音频流
 
 	void reset()noexcept;
+
+	~FAVProcessors();
 };
-
-
 
 class VideoFrameProcesser
 {
@@ -71,103 +71,6 @@ private:
 };
 
 using VFrameProcessorUPtr = std::unique_ptr<VideoFrameProcesser>;
-
-class FAVFrameBuffer
-{
-public:
-	FAVFrameBuffer(size_t cap);
-
-	bool isBeyond()const;
-
-	bool isEmpty()const;
-
-	void waitNotBeyond()const;
-
-	void pushFrame(const FrameSPtr&);
-
-	FrameSPtr popFrame();
-
-	void clear();
-
-private:
-	QList<FrameSPtr> m_bufferFrames;
-	size_t m_limCapacity;
-	int m_curIndex = 0;
-
-	mutable QMutex m_mutex;
-	mutable QWaitCondition m_condNotBeyond;
-};
-
-using BufferUPtr = std::unique_ptr<FAVFrameBuffer>;
-
-class AudioListProcessor;
-class VideoProcessList;
-class FAVFileReader : public QObject
-{
-	Q_OBJECT
-public:
-	explicit FAVFileReader(QObject* p = nullptr);
-
-	virtual ~FAVFileReader();
-
-	bool openFile(const QString&);
-
-	void readFrames();
-
-	void stop();
-
-	FrameSPtr popAudioFrame();
-
-	FrameSPtr popVideoFrame();
-
-	void seekSecond(double);
-
-	const FAVInfo* getInfo()const;
-
-	void reset()noexcept;
-
-	bool decoding()const;
-
-	void addAudioProcessor(AProcessSPtr);
-
-signals:
-	void durationSecondChanged(double);
-
-	void decodeEnd();
-
-	void seekFinished();
-
-private:
-	double getPreciousDurationSecond();
-
-	bool checkAndSeek();
-
-	void waitNotBeyond();
-
-	void decodePacket(AVCodecContext* dec_ctx, AVPacket* pkt, AVStream* strm);
-private:
-	std::unique_ptr<AudioListProcessor> m_upAudioProcessors;
-
-	BufferUPtr m_upAudioBuffer = nullptr;
-	BufferUPtr m_upVideoBuffer = nullptr;
-
-	mutable QMutex m_mutex;
-	QWaitCondition m_condStop;
-
-	FAVProcessors m_procs;
-	std::shared_ptr<FAVInfo> m_spInfo;
-
-	int64_t m_aDuration = AV_NOPTS_VALUE;
-	int64_t m_vDuration = AV_NOPTS_VALUE;
-
-	double m_seekSecond = -1;
-	double m_seekDecodeSecond = -1;
-
-	bool m_stop = true;
-	bool m_decoding = false;
-};
-
-using ReaderSPtr = std::shared_ptr<FAVFileReader>;
 
 class FAVPlayer;
 class AudioSDLPlayer :public QObject
@@ -236,7 +139,11 @@ public:
 
 	virtual ~FAVPlayer();
 
+
+
 	bool openFile(const QString&);
+
+	//bool openUrl(const QString&);
 
 	PlayState state()const;
 
@@ -263,6 +170,10 @@ public slots:
 	void seekForward();
 
 	void seekBackward();
+
+	void setDuration(double);
+
+	void onSeekFinished();
 signals:
 	void secondChanged(double);
 
@@ -272,12 +183,11 @@ signals:
 
 	void stopped();
 
+	void seek(double);
+
 private slots:
+
 	void setCurSecond(double);
-
-	void setDuration(double);
-
-	void onSeekFinished();
 
 	void onAudioEnd(FAVPlayer*);
 
@@ -285,10 +195,13 @@ private slots:
 
 	void check_stop();
 
+	bool openPath(const QString&, const ReaderSPtr&);
+
 private:
 	VideoOpenGLPlayer* m_pVideoPlayer = nullptr;
 	ReaderSPtr m_spReader;
 	std::shared_ptr<AudioSpeedProcessor> m_spSpeedProc;
+	std::shared_ptr<AudioListProcessor> m_spListProc;
 
 	QThread m_threadDecode;
 
@@ -297,8 +210,8 @@ private:
 	double m_durationSecond = -1;
 	mutable double m_curSecond = 0;
 
-	bool m_audioEnd = true;
-	bool m_videoEnd = true;
+	bool m_bAudioEnd = true;
+	bool m_bVideoEnd = true;
 
 	friend class AudioSDLPlayer;
 };

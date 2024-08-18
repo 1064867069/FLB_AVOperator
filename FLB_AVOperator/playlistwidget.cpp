@@ -4,17 +4,17 @@
 
 #include <QVBoxLayout>
 
-PlayListWidget::PlayListWidget(QWidget* p) :QWidget(p)
+PlayListWidget::PlayListWidget(IAVPathManager* pm, QWidget* p) :QWidget(p)
 {
-	m_pPlayTable = new LocalPlayTable(this);
+	m_pPlayTable = new PathPlayTable(pm, this);
 	m_pButtonAddFile = new QPushButton(this);
 
 	auto* fm = &AVFileManager::getInstance();
 
 	m_pButtonAddFile->setFixedHeight(30);
 	m_pButtonAddFile->setText("添加文件");
-	fm->setDlgParent(this);
-	connect(m_pButtonAddFile, &QPushButton::clicked, fm, &AVFileManager::importFile);
+	pm->setDlgParent(this);
+	connect(m_pButtonAddFile, &QPushButton::clicked, pm, &IAVPathManager::importPath);
 
 	auto vlayout = new QVBoxLayout(this);
 	vlayout->addWidget(m_pButtonAddFile);
@@ -45,7 +45,7 @@ PlayListWidget::PlayListWidget(QWidget* p) :QWidget(p)
 	this->setStyleSheet(styleSheet);
 }
 
-const LocalPlayTable* PlayListWidget::getPlayTable()const
+const PathPlayTable* PlayListWidget::getPlayTable()const
 {
 	return m_pPlayTable;
 }

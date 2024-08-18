@@ -21,8 +21,8 @@ QT_BEGIN_MOC_NAMESPACE
 QT_WARNING_PUSH
 QT_WARNING_DISABLE_DEPRECATED
 struct qt_meta_stringdata_PlayBtmBar_t {
-    QByteArrayData data[17];
-    char stringdata0[199];
+    QByteArrayData data[20];
+    char stringdata0[230];
 };
 #define QT_MOC_LITERAL(idx, ofs, len) \
     Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
@@ -38,24 +38,28 @@ QT_MOC_LITERAL(3, 24, 12), // "pauseClicked"
 QT_MOC_LITERAL(4, 37, 11), // "lastClicked"
 QT_MOC_LITERAL(5, 49, 11), // "nextClicked"
 QT_MOC_LITERAL(6, 61, 11), // "fullClicked"
-QT_MOC_LITERAL(7, 73, 12), // "setPlayState"
-QT_MOC_LITERAL(8, 86, 11), // "onEventType"
-QT_MOC_LITERAL(9, 98, 12), // "QEvent::Type"
-QT_MOC_LITERAL(10, 111, 12), // "onFullScreen"
-QT_MOC_LITERAL(11, 124, 18), // "onPlayPauseClicked"
-QT_MOC_LITERAL(12, 143, 10), // "paintEvent"
-QT_MOC_LITERAL(13, 154, 12), // "QPaintEvent*"
-QT_MOC_LITERAL(14, 167, 5), // "event"
-QT_MOC_LITERAL(15, 173, 12), // "onVolClicked"
-QT_MOC_LITERAL(16, 186, 12) // "onVolChanged"
+QT_MOC_LITERAL(7, 73, 10), // "setClicked"
+QT_MOC_LITERAL(8, 84, 12), // "setPlayState"
+QT_MOC_LITERAL(9, 97, 11), // "onEventType"
+QT_MOC_LITERAL(10, 109, 12), // "QEvent::Type"
+QT_MOC_LITERAL(11, 122, 12), // "onFullScreen"
+QT_MOC_LITERAL(12, 135, 18), // "onPlayPauseClicked"
+QT_MOC_LITERAL(13, 154, 10), // "onSeekAble"
+QT_MOC_LITERAL(14, 165, 8), // "seekAble"
+QT_MOC_LITERAL(15, 174, 10), // "paintEvent"
+QT_MOC_LITERAL(16, 185, 12), // "QPaintEvent*"
+QT_MOC_LITERAL(17, 198, 5), // "event"
+QT_MOC_LITERAL(18, 204, 12), // "onVolClicked"
+QT_MOC_LITERAL(19, 217, 12) // "onVolChanged"
 
     },
     "PlayBtmBar\0playClicked\0\0pauseClicked\0"
     "lastClicked\0nextClicked\0fullClicked\0"
-    "setPlayState\0onEventType\0QEvent::Type\0"
-    "onFullScreen\0onPlayPauseClicked\0"
-    "paintEvent\0QPaintEvent*\0event\0"
-    "onVolClicked\0onVolChanged"
+    "setClicked\0setPlayState\0onEventType\0"
+    "QEvent::Type\0onFullScreen\0onPlayPauseClicked\0"
+    "onSeekAble\0seekAble\0paintEvent\0"
+    "QPaintEvent*\0event\0onVolClicked\0"
+    "onVolChanged"
 };
 #undef QT_MOC_LITERAL
 
@@ -65,30 +69,33 @@ static const uint qt_meta_data_PlayBtmBar[] = {
        7,       // revision
        0,       // classname
        0,    0, // classinfo
-      12,   14, // methods
+      14,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
        0,       // flags
-       5,       // signalCount
+       6,       // signalCount
 
  // signals: name, argc, parameters, tag, flags
-       1,    0,   74,    2, 0x06 /* Public */,
-       3,    0,   75,    2, 0x06 /* Public */,
-       4,    0,   76,    2, 0x06 /* Public */,
-       5,    0,   77,    2, 0x06 /* Public */,
-       6,    0,   78,    2, 0x06 /* Public */,
+       1,    0,   84,    2, 0x06 /* Public */,
+       3,    0,   85,    2, 0x06 /* Public */,
+       4,    0,   86,    2, 0x06 /* Public */,
+       5,    0,   87,    2, 0x06 /* Public */,
+       6,    0,   88,    2, 0x06 /* Public */,
+       7,    0,   89,    2, 0x06 /* Public */,
 
  // slots: name, argc, parameters, tag, flags
-       7,    1,   79,    2, 0x0a /* Public */,
-       8,    1,   82,    2, 0x0a /* Public */,
-      10,    0,   85,    2, 0x0a /* Public */,
-      11,    0,   86,    2, 0x0a /* Public */,
-      12,    1,   87,    2, 0x09 /* Protected */,
-      15,    0,   90,    2, 0x09 /* Protected */,
-      16,    1,   91,    2, 0x09 /* Protected */,
+       8,    1,   90,    2, 0x0a /* Public */,
+       9,    1,   93,    2, 0x0a /* Public */,
+      11,    0,   96,    2, 0x0a /* Public */,
+      12,    0,   97,    2, 0x0a /* Public */,
+      13,    1,   98,    2, 0x0a /* Public */,
+      15,    1,  101,    2, 0x09 /* Protected */,
+      18,    0,  104,    2, 0x09 /* Protected */,
+      19,    1,  105,    2, 0x09 /* Protected */,
 
  // signals: parameters
+    QMetaType::Void,
     QMetaType::Void,
     QMetaType::Void,
     QMetaType::Void,
@@ -97,10 +104,11 @@ static const uint qt_meta_data_PlayBtmBar[] = {
 
  // slots: parameters
     QMetaType::Void, QMetaType::Bool,    2,
-    QMetaType::Void, 0x80000000 | 9,    2,
+    QMetaType::Void, 0x80000000 | 10,    2,
     QMetaType::Void,
     QMetaType::Void,
-    QMetaType::Void, 0x80000000 | 13,   14,
+    QMetaType::Void, QMetaType::Bool,   14,
+    QMetaType::Void, 0x80000000 | 16,   17,
     QMetaType::Void,
     QMetaType::Void, QMetaType::Int,    2,
 
@@ -118,13 +126,15 @@ void PlayBtmBar::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, 
         case 2: _t->lastClicked(); break;
         case 3: _t->nextClicked(); break;
         case 4: _t->fullClicked(); break;
-        case 5: _t->setPlayState((*reinterpret_cast< bool(*)>(_a[1]))); break;
-        case 6: _t->onEventType((*reinterpret_cast< QEvent::Type(*)>(_a[1]))); break;
-        case 7: _t->onFullScreen(); break;
-        case 8: _t->onPlayPauseClicked(); break;
-        case 9: _t->paintEvent((*reinterpret_cast< QPaintEvent*(*)>(_a[1]))); break;
-        case 10: _t->onVolClicked(); break;
-        case 11: _t->onVolChanged((*reinterpret_cast< int(*)>(_a[1]))); break;
+        case 5: _t->setClicked(); break;
+        case 6: _t->setPlayState((*reinterpret_cast< bool(*)>(_a[1]))); break;
+        case 7: _t->onEventType((*reinterpret_cast< QEvent::Type(*)>(_a[1]))); break;
+        case 8: _t->onFullScreen(); break;
+        case 9: _t->onPlayPauseClicked(); break;
+        case 10: _t->onSeekAble((*reinterpret_cast< bool(*)>(_a[1]))); break;
+        case 11: _t->paintEvent((*reinterpret_cast< QPaintEvent*(*)>(_a[1]))); break;
+        case 12: _t->onVolClicked(); break;
+        case 13: _t->onVolChanged((*reinterpret_cast< int(*)>(_a[1]))); break;
         default: ;
         }
     } else if (_c == QMetaObject::IndexOfMethod) {
@@ -164,6 +174,13 @@ void PlayBtmBar::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, 
                 return;
             }
         }
+        {
+            typedef void (PlayBtmBar::*_t)();
+            if (*reinterpret_cast<_t *>(_a[1]) == static_cast<_t>(&PlayBtmBar::setClicked)) {
+                *result = 5;
+                return;
+            }
+        }
     }
 }
 
@@ -192,13 +209,13 @@ int PlayBtmBar::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 12)
+        if (_id < 14)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 12;
+        _id -= 14;
     } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 12)
+        if (_id < 14)
             *reinterpret_cast<int*>(_a[0]) = -1;
-        _id -= 12;
+        _id -= 14;
     }
     return _id;
 }
@@ -231,6 +248,12 @@ void PlayBtmBar::nextClicked()
 void PlayBtmBar::fullClicked()
 {
     QMetaObject::activate(this, &staticMetaObject, 4, nullptr);
+}
+
+// SIGNAL 5
+void PlayBtmBar::setClicked()
+{
+    QMetaObject::activate(this, &staticMetaObject, 5, nullptr);
 }
 QT_WARNING_POP
 QT_END_MOC_NAMESPACE

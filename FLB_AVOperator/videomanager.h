@@ -10,18 +10,35 @@
 namespace video
 {
 
-
+	// 将值调整到指定的最小值和最大值之间
+	inline int clamp(int value, int min, int max) {
+		if (value > max) {
+			return max;
+		}
+		else if (value < min) {
+			return min;
+		}
+		else {
+			return value;
+		}
+	}
 
 	class IVideoManager
 	{
 	public:
 		virtual int perSize() = 0;
 
+		virtual int getVal(uint8_t*) = 0;
+
+		virtual void setVal(uint8_t*, int val) = 0;
+
 		virtual SingleDataFunc AddDecPerFunc(int low, int high, float brtCoe) = 0;
 
 		virtual SingleDataFunc midADPerFunc(int low, int high, int mid, float brtCoe) = 0;
 
 		virtual void avr2dData(const uint8_t* data, int* outNum, int w, int h, int ln_sz, int step = 1) = 0;
+
+		virtual void chromAdjust(AVFrame* pvf, const AVPixFmtDescriptor* desc, float chrom, int depth) = 0;
 
 		static IVideoManager* getManagerByDepth(int);
 	};
@@ -34,13 +51,23 @@ namespace video
 
 		virtual int perSize()override { return sizeof(T); }
 
+		virtual int getVal(uint8_t* data)override
+		{
+			return *reinterpret_cast<T*>(data);
+		}
+
+		virtual void setVal(uint8_t* data, int val)override
+		{
+			*reinterpret_cast<T*>(data) = static_cast<T>(val);
+		}
+
 		virtual SingleDataFunc AddDecPerFunc(int low, int high, float brtCoe)override {
-			int gap = (high - low) * brtCoe;
-			auto func = [low, high, gap](uint8_t* data)
+			const int gapAll = high - low, gap = gapAll * brtCoe;
+			auto func = [low, high, gap, gapAll](uint8_t* data)
 			{
 				auto* cur = reinterpret_cast<T*>(data);
 				UpperType tmp = *cur;
-				tmp = tmp + gap;
+				tmp = tmp + gap * static_cast<float>(tmp - low) / gapAll;
 
 				if (gap < 0)
 					tmp = std::max(static_cast<UpperType>(low), tmp);
@@ -102,6 +129,67 @@ namespace video
 				*outNum /= cnt;
 		}
 
+		virtual void chromAdjust(AVFrame* pvf, const AVPixFmtDescriptor* desc, float chrom, int depth)override
+		{
+			auto data = reinterpret_cast<T**>(pvf->data);
+			int ii, jj, yi, ui, vi, y, y2, u, v, r, g, b, gap1, gap2, * pMin, * pMax, * pMid;
+			int minVal = 16 * ((1 << depth) - 1) / 255;
+			int maxV = 240 * ((1 << depth) - 1) / 255, maxY = 235 * ((1 << depth) - 1) / 255;
+			int mid = (1 << (depth - 1));
+			int yi0 = 0, ui0 = 0, vi0 = 0;
+			int hStep = (1 << desc->log2_chroma_h), wStep = (1 << desc->log2_chroma_w);
+			int yLnSz = pvf->linesize[0] / perSize(), uvLnSz = pvf->linesize[1] / perSize();
+
+			//auto getR2Y = depth <= 16 ? video::getYUV_BT601_Dep16 : video::getYUV_BT601;
+			std::tuple<int, int, int> tp3;
+			for (int i = 0; i < pvf->height; i += hStep)
+			{
+				for (int j = 0; j < pvf->width; j += wStep)
+				{
+					jj = (j >> desc->log2_chroma_w);
+					yi = yi0 + j, ui = ui0 + jj, vi = vi0 + jj;
+					y = data[0][yi];
+					u = data[1][ui];
+					v = data[2][vi];
+					tp3 = video::getRGB_BT601(y, u, v, mid);
+					std::tie(r, g, b) = tp3;
+
+					pMin = (r > g ? &g : &r), pMax = (r > g ? &r : &g);
+					pMin = *pMin > b ? &b : pMin;
+					pMax = *pMax > b ? pMax : &b;
+					for (auto* p : { &r,&g,&b })
+						if (p != pMin && p != pMax)
+							pMid = p;
+
+					gap1 = ((*pMax - *pMid));
+					gap2 = ((*pMid - *pMin));
+					gap1 *= chrom;
+					gap2 *= chrom;
+					/*if (gap1 == 0 && gap2 == 0)
+						continue;*/
+
+					*pMax += gap1;
+					*pMin -= gap2;
+					tp3 = video::getYUV_BT601(r, g, b, mid);
+					std::tie(y2, u, v) = tp3;
+					y2 = clamp(y2, minVal, maxY) - y;
+					u = clamp(u, minVal, maxV);
+					v = clamp(v, minVal, maxV);
+					for (int k1 = 0; k1 < hStep; ++k1)
+					{
+						int yi2 = yi + k1 * yLnSz;
+						for (int k2 = 0; k2 < wStep; ++k2)
+						{
+							data[0][yi2 + k2] += y2;
+						}
+					}
+					data[1][ui] = u;
+					data[2][vi] = v;
+				}
+				yi0 += (yLnSz << desc->log2_chroma_h), ui0 += uvLnSz, vi0 += uvLnSz;
+			}
+		}
+
 	private:
 		VideoManager() = default;
 
@@ -110,6 +198,8 @@ namespace video
 
 		friend class IVideoManager;
 	};
+
+
 
 	inline IVideoManager* IVideoManager::getManagerByDepth(int depth)
 	{

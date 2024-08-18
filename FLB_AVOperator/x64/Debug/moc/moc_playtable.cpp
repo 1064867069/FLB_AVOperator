@@ -148,34 +148,34 @@ void PlayTableBase::played()
 {
     QMetaObject::activate(this, &staticMetaObject, 0, nullptr);
 }
-struct qt_meta_stringdata_LocalPlayTable_t {
+struct qt_meta_stringdata_PathPlayTable_t {
     QByteArrayData data[14];
-    char stringdata0[158];
+    char stringdata0[157];
 };
 #define QT_MOC_LITERAL(idx, ofs, len) \
     Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
-    qptrdiff(offsetof(qt_meta_stringdata_LocalPlayTable_t, stringdata0) + ofs \
+    qptrdiff(offsetof(qt_meta_stringdata_PathPlayTable_t, stringdata0) + ofs \
         - idx * sizeof(QByteArrayData)) \
     )
-static const qt_meta_stringdata_LocalPlayTable_t qt_meta_stringdata_LocalPlayTable = {
+static const qt_meta_stringdata_PathPlayTable_t qt_meta_stringdata_PathPlayTable = {
     {
-QT_MOC_LITERAL(0, 0, 14), // "LocalPlayTable"
-QT_MOC_LITERAL(1, 15, 7), // "playAVF"
-QT_MOC_LITERAL(2, 23, 0), // ""
-QT_MOC_LITERAL(3, 24, 10), // "addNewFile"
-QT_MOC_LITERAL(4, 35, 7), // "lastAVF"
-QT_MOC_LITERAL(5, 43, 7), // "nextAVF"
-QT_MOC_LITERAL(6, 51, 21), // "mouseDoubleClickEvent"
-QT_MOC_LITERAL(7, 73, 12), // "QMouseEvent*"
-QT_MOC_LITERAL(8, 86, 5), // "event"
-QT_MOC_LITERAL(9, 92, 17), // "mouseReleaseEvent"
-QT_MOC_LITERAL(10, 110, 7), // "delFile"
-QT_MOC_LITERAL(11, 118, 19), // "onCustomContextMenu"
-QT_MOC_LITERAL(12, 138, 3), // "pos"
-QT_MOC_LITERAL(13, 142, 15) // "onPlayTriggered"
+QT_MOC_LITERAL(0, 0, 13), // "PathPlayTable"
+QT_MOC_LITERAL(1, 14, 7), // "playAVF"
+QT_MOC_LITERAL(2, 22, 0), // ""
+QT_MOC_LITERAL(3, 23, 10), // "addNewFile"
+QT_MOC_LITERAL(4, 34, 7), // "lastAVF"
+QT_MOC_LITERAL(5, 42, 7), // "nextAVF"
+QT_MOC_LITERAL(6, 50, 21), // "mouseDoubleClickEvent"
+QT_MOC_LITERAL(7, 72, 12), // "QMouseEvent*"
+QT_MOC_LITERAL(8, 85, 5), // "event"
+QT_MOC_LITERAL(9, 91, 17), // "mouseReleaseEvent"
+QT_MOC_LITERAL(10, 109, 7), // "delFile"
+QT_MOC_LITERAL(11, 117, 19), // "onCustomContextMenu"
+QT_MOC_LITERAL(12, 137, 3), // "pos"
+QT_MOC_LITERAL(13, 141, 15) // "onPlayTriggered"
 
     },
-    "LocalPlayTable\0playAVF\0\0addNewFile\0"
+    "PathPlayTable\0playAVF\0\0addNewFile\0"
     "lastAVF\0nextAVF\0mouseDoubleClickEvent\0"
     "QMouseEvent*\0event\0mouseReleaseEvent\0"
     "delFile\0onCustomContextMenu\0pos\0"
@@ -183,7 +183,7 @@ QT_MOC_LITERAL(13, 142, 15) // "onPlayTriggered"
 };
 #undef QT_MOC_LITERAL
 
-static const uint qt_meta_data_LocalPlayTable[] = {
+static const uint qt_meta_data_PathPlayTable[] = {
 
  // content:
        7,       // revision
@@ -225,10 +225,10 @@ static const uint qt_meta_data_LocalPlayTable[] = {
        0        // eod
 };
 
-void LocalPlayTable::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
+void PathPlayTable::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
 {
     if (_c == QMetaObject::InvokeMetaMethod) {
-        LocalPlayTable *_t = static_cast<LocalPlayTable *>(_o);
+        PathPlayTable *_t = static_cast<PathPlayTable *>(_o);
         Q_UNUSED(_t)
         switch (_id) {
         case 0: _t->playAVF((*reinterpret_cast< QString(*)>(_a[1]))); break;
@@ -245,8 +245,8 @@ void LocalPlayTable::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _
     } else if (_c == QMetaObject::IndexOfMethod) {
         int *result = reinterpret_cast<int *>(_a[0]);
         {
-            typedef void (LocalPlayTable::*_t)(QString );
-            if (*reinterpret_cast<_t *>(_a[1]) == static_cast<_t>(&LocalPlayTable::playAVF)) {
+            typedef void (PathPlayTable::*_t)(QString );
+            if (*reinterpret_cast<_t *>(_a[1]) == static_cast<_t>(&PathPlayTable::playAVF)) {
                 *result = 0;
                 return;
             }
@@ -254,26 +254,26 @@ void LocalPlayTable::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _
     }
 }
 
-const QMetaObject LocalPlayTable::staticMetaObject = {
-    { &PlayTableBase::staticMetaObject, qt_meta_stringdata_LocalPlayTable.data,
-      qt_meta_data_LocalPlayTable,  qt_static_metacall, nullptr, nullptr}
+const QMetaObject PathPlayTable::staticMetaObject = {
+    { &PlayTableBase::staticMetaObject, qt_meta_stringdata_PathPlayTable.data,
+      qt_meta_data_PathPlayTable,  qt_static_metacall, nullptr, nullptr}
 };
 
 
-const QMetaObject *LocalPlayTable::metaObject() const
+const QMetaObject *PathPlayTable::metaObject() const
 {
     return QObject::d_ptr->metaObject ? QObject::d_ptr->dynamicMetaObject() : &staticMetaObject;
 }
 
-void *LocalPlayTable::qt_metacast(const char *_clname)
+void *PathPlayTable::qt_metacast(const char *_clname)
 {
     if (!_clname) return nullptr;
-    if (!strcmp(_clname, qt_meta_stringdata_LocalPlayTable.stringdata0))
+    if (!strcmp(_clname, qt_meta_stringdata_PathPlayTable.stringdata0))
         return static_cast<void*>(this);
     return PlayTableBase::qt_metacast(_clname);
 }
 
-int LocalPlayTable::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
+int PathPlayTable::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
 {
     _id = PlayTableBase::qt_metacall(_c, _id, _a);
     if (_id < 0)
@@ -291,7 +291,7 @@ int LocalPlayTable::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
 }
 
 // SIGNAL 0
-void LocalPlayTable::playAVF(QString _t1)
+void PathPlayTable::playAVF(QString _t1)
 {
     void *_a[] = { nullptr, const_cast<void*>(reinterpret_cast<const void*>(&_t1)) };
     QMetaObject::activate(this, &staticMetaObject, 0, _a);

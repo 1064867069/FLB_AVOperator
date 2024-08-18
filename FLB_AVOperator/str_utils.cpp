@@ -22,3 +22,9 @@ const QString& NsStr::cacheDir()
 
 	return ls_dir;
 }
+
+const QString& NsStr::sepNameUrl()
+{
+	static const QString ls_sep = "###";
+	return ls_sep;
+}

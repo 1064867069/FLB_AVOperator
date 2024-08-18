@@ -119,9 +119,9 @@
   <widget class="QLabel" name="m_labelChrom">
    <property name="geometry">
     <rect>
-     <x>10</x>
+     <x>0</x>
      <y>50</y>
-     <width>31</width>
+     <width>41</width>
      <height>20</height>
     </rect>
    </property>
@@ -131,7 +131,7 @@
     </font>
    </property>
    <property name="text">
-    <string>色 度</string>
+    <string>饱和度</string>
    </property>
    <property name="alignment">
     <set>Qt::AlignCenter</set>
@@ -147,10 +147,10 @@
     </rect>
    </property>
    <property name="minimum">
-    <number>-100</number>
+    <number>-40</number>
    </property>
    <property name="maximum">
-    <number>100</number>
+    <number>40</number>
    </property>
    <property name="orientation">
     <enum>Qt::Horizontal</enum>

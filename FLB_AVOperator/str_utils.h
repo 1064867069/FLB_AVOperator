@@ -8,6 +8,8 @@ namespace NsStr
 	QString filePath2Name(const QString&);
 
 	const QString& cacheDir();
+
+	const QString& sepNameUrl();
 };
 
 #endif // !STR_UTILS_H

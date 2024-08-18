@@ -95,6 +95,16 @@ namespace audio
 
 namespace video
 {
+	//const std::array<float, 65536> g_ry = getIdxCoe(0.299);
+	//const std::array<float, 65536> g_gy = getIdxCoe(0.587);
+	//const std::array<float, 65536> g_by = getIdxCoe(0.114);
+
+	//const std::array<float, 65536> g_ru = getIdxCoe(-0.169);
+	//const std::array<float, 65536> g_gu = getIdxCoe(-0.331);
+
+	//const std::array<float, 65536> g_gv = getIdxCoe(-0.419);
+	//const std::array<float, 65536> g_bv = getIdxCoe(-0.081);
+
 	void seriesProc(uint8_t* data, int size, int per_size, SingleDataFunc func)
 	{
 		int cur = 0;
@@ -131,7 +141,8 @@ namespace video
 		}
 
 		auto vm = IVideoManager::getManagerByDepth(desc->comp[0].depth);
-		int sizePerComp = linesizes[0] * h * vm->perSize(), allSize = sizePerComp;
+		int sizePerComp = linesizes[0] * h, allSize = sizePerComp;
+		int uvw = (w >> desc->log2_chroma_w), uvh = (h >> desc->log2_chroma_h);
 		std::array<int, 4> szArr = { 0 };
 
 		szArr[0] = sizePerComp;
@@ -144,9 +155,9 @@ namespace video
 			}
 			else
 			{
-				float ratioFrom1 = static_cast<float>(linesizes[i]) / linesizes[0];
-				ratioFrom1 *= ratioFrom1;
-				szArr[i] = sizePerComp * ratioFrom1;
+				/*float ratioFrom1 = static_cast<float>(linesizes[i]) / linesizes[0];
+				ratioFrom1 *= ratioFrom1;*/
+				szArr[i] = uvh * linesizes[i];
 				allSize += szArr[i];
 			}
 		}

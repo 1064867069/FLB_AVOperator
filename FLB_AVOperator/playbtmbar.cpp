@@ -8,6 +8,15 @@
 #include <QDebug>
 #include <QPainter>
 
+void disableFocusForAllChildren(QWidget* parent) {
+	parent->setFocusPolicy(Qt::NoFocus);  // 取消父母控件的焦点
+
+	const QList<QWidget*> children = parent->findChildren<QWidget*>();
+	for (QWidget* child : children) {
+		child->setFocusPolicy(Qt::NoFocus);  // 取消子控件的焦点
+	}
+}
+
 PlayBtmBar::PlayBtmBar(FAVPlayer* player, QWidget* ps, QWidget* p) :QWidget(p), m_pPlayer(player), m_pScreenWidget(ps)
 {
 	ui.setupUi(this);
@@ -29,6 +38,7 @@ PlayBtmBar::PlayBtmBar(FAVPlayer* player, QWidget* ps, QWidget* p) :QWidget(p), 
 
 
 	this->setMouseTracking(true);
+	disableFocusForAllChildren(this);
 }
 
 PlayBtmBar::~PlayBtmBar()
@@ -196,6 +206,14 @@ void PlayBtmBar::onPlayPauseClicked()
 		emit playClicked();
 
 	this->setPlayState(!play);
+}
+
+void PlayBtmBar::onSeekAble(bool seekAble)
+{
+	m_pBtnBackward->setEnabled(seekAble);
+	m_pBtnForward->setEnabled(seekAble);
+	m_pCmbBoxSpeed->setEnabled(seekAble);
+	m_pLabelTimestamp->setEnabled(seekAble);
 }
 
 void PlayBtmBar::onVolClicked()

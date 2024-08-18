@@ -3,6 +3,8 @@
 
 #include <QTableWidget>
 
+#include "interfaces.h"
+
 //主要用于播放列表代码的一些复用
 class PlayTableBase :public QTableWidget
 {
@@ -31,16 +33,18 @@ protected:
 	int m_curPlayIndex = -1;
 
 	bool m_played = false;
+
+	static PlayTableBase* s_pCurPlayTable;
 };
 
-class LocalPlayTable :public PlayTableBase
+class PathPlayTable :public PlayTableBase
 {
 	Q_OBJECT
 public:
-	explicit LocalPlayTable(QWidget* p = nullptr);
+	explicit PathPlayTable(IAVPathManager* pthManager, QWidget* p = nullptr);
 
 public slots:
-	//严格依赖AVFileManager
+	//严格依赖IAVPathManager
 	void addNewFile(int);
 
 	virtual void lastAVF()Q_DECL_OVERRIDE;
@@ -70,6 +74,7 @@ private:
 	//void addItem(int, const QString&);
 
 private:
+	IAVPathManager* m_pPthManager;
 	QMenu* m_pMenu = nullptr;
 
 	QAction* m_pActionPlay;

@@ -30,6 +30,8 @@ public slots:
 	void onFullScreen();
 
 	void onPlayPauseClicked();
+
+	void onSeekAble(bool seekAble);
 protected slots:
 	void paintEvent(QPaintEvent* event)Q_DECL_OVERRIDE;
 

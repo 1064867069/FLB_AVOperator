@@ -3,6 +3,8 @@
 
 #include <QObject>
 #include <QSlider>
+#include <QMutex>
+#include <QWaitCondition>
 
 class FAVPlayer;
 
@@ -76,5 +78,42 @@ protected:
 	// FrameSPtr createNewFrame(const FAVInfo*);
 };
 using VProcessSPtr = std::shared_ptr<IVideoFrameProcessor>;
+
+class IAVPathManager : public QObject
+{
+	Q_OBJECT
+public:
+	const QStringList& getPaths()const;
+
+	const QStringList& getNames()const;
+
+	void setDlgParent(QWidget*);
+
+public slots:
+	virtual void importPath() = 0;
+
+	virtual bool delFile(int) = 0;
+
+signals:
+	void newfp(int);
+
+protected:
+	QStringList m_listFPath;
+	QStringList m_listFName;
+	QString m_sqlTable;
+
+	QWidget* m_parent = nullptr;
+};
+
+class FAVInfo;
+class FAVProcessors;
+class FAVPlayer;
+class VideoOpenGLPlayer;
+class AudioListProcessor;
+class FAVFrameBuffer;
+
+class IAVReader;
+using ReaderSPtr = std::shared_ptr<IAVReader>;
+
 #endif // !INTERFACES_H
 

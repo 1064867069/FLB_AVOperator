@@ -1,4 +1,5 @@
 #include "avoperator.h"
+#include "avreader.h"
 
 #include <QDebug>
 #include <qlogging.h>

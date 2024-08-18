@@ -1,6 +1,8 @@
 #include "videoopenglplayer.h"
 #include "avoperator.h"
 #include "playbtmbar.h"
+#include "avreader.h"
+#include "threadpool.h"
 
 #include <QDebug>
 #include <QDateTime>
@@ -8,8 +10,6 @@
 
 #define ATTRIB_VERTEX 3
 #define ATTRIB_TEXTURE 4
-
-
 
 
 VideoOpenGLPlayer::VideoOpenGLPlayer(QWidget* p) :
@@ -43,7 +43,7 @@ VideoOpenGLPlayer::VideoOpenGLPlayer(QWidget* p) :
 	m_pPlayBtmWidget->installEventFilter(this);
 
 	setMouseTracking(true);
-	grabKeyboard();
+	this->setFocus();
 
 	connect(&m_timerBtmHide, &QTimer::timeout, this, &VideoOpenGLPlayer::hideBtmWidget);
 	connect(&m_timerFramePlay, &QTimer::timeout, this, &VideoOpenGLPlayer::playFrame);
@@ -122,6 +122,7 @@ void VideoOpenGLPlayer::pause(bool isPause)
 		{
 			m_timerFramePlay.start();
 		}
+		//grabKeyboard();
 	}
 
 	m_pPlayBtmWidget->setPlayState(!isPause);
@@ -135,6 +136,8 @@ void VideoOpenGLPlayer::onAVStop()
 
 	if (m_spFRdManager)
 		m_spFRdManager->stop();
+
+	//releaseKeyboard();
 
 	m_upVideoFrameProcessor.reset();
 	m_spCurFrame.reset();
@@ -524,6 +527,8 @@ void VideoOpenGLPlayer::mouseMoveEvent(QMouseEvent* event)
 	QOpenGLWidget::mouseMoveEvent(event);
 	if (m_pPlayer->state() != PlayState::Stop)
 		this->refreshHide();
+
+	this->setFocus();
 }
 
 void VideoOpenGLPlayer::keyPressEvent(QKeyEvent* event)
@@ -580,7 +585,7 @@ void VideoOpenGLPlayer::hideBtmWidget()
 
 void VideoOpenGLPlayer::onParamsUpdated()
 {
-	if (m_spCurFrame)
+	if (m_spCurFrame && m_pPlayer->state() == PlayState::Pause)
 	{
 		m_spCurFrame = m_spFRdManager->updateLastFrame();
 		m_upVideoFrameProcessor->processFrame(m_spCurFrame);
@@ -648,7 +653,7 @@ void VideoOpenGLPlayer::addVProcessor(const VProcessSPtr& spProc)
 }
 
 
-VideoFrameReadManager::VideoFrameReadManager() : QObject(nullptr)
+VideoFrameReadManager::VideoFrameReadManager(int fut_lim) : QObject(nullptr), m_limFut(fut_lim)
 {
 	this->moveToThread(&m_threadProcFrame);
 	m_threadProcFrame.start();
@@ -688,8 +693,19 @@ FrameSPtr VideoFrameReadManager::getFrame(double s)
 {
 	QMutexLocker locker(&m_mutex);
 	FrameSPtr res;
+
+	/*if (m_listOrgFrames.empty())
+	{
+		if (m_listFuture.size() > 0)
+		{
+			m_listFuture.front().get();
+			m_listFuture.pop_front();
+		}
+	}*/
+
 	/*if (m_listOrgFrames.size() > 0)
 		qDebug() << m_listOrgFrames[0]->getSecond() << s;*/
+	m_second = s;
 	while (m_listOrgFrames.size() > 0 && m_listOrgFrames[0]->getSecond() <= s)
 	{
 		m_spLastFrame = m_listOrgFrames.front();
@@ -709,10 +725,30 @@ void VideoFrameReadManager::procVFrames()
 
 	m_stop = false;
 
+	auto frameProc = [this](FrameSPtr spf)
+	{
+		auto start = QDateTime::currentMSecsSinceEpoch();
+		auto procList = m_pProcessList;
+		auto procf = procList ? procList->processFrame(spf) : spf;
+		auto gap = static_cast<double>(QDateTime::currentMSecsSinceEpoch() - start) / 1000;
+
+		QMutexLocker locker(&m_mutex);
+		m_listOrgFrames.append(spf);
+		m_listProcFrames.append(procf);
+		m_secondGap = m_secondGap * 0.5 + gap * 0.5;
+		//qDebug() << m_secondGap;
+
+		while (m_listOrgFrames.size() > 1 && m_listOrgFrames[0]->getSecond() > spf->getSecond())
+		{
+			m_listOrgFrames.pop_front();
+			m_listProcFrames.pop_front();
+		}
+	};
+
 	FrameSPtr tmp;
 	while (!m_stop)
 	{
-		if (m_listOrgFrames.size() > 5)
+		if (m_listOrgFrames.size() > m_limFut)
 		{
 			QThread::msleep(5);
 			continue;
@@ -721,24 +757,29 @@ void VideoFrameReadManager::procVFrames()
 		tmp = m_spReader->popVideoFrame();
 		if (tmp)
 		{
-			auto procf = m_pProcessList ? m_pProcessList->processFrame(tmp) : tmp;
-			if (procf)
-			{
-				QMutexLocker locker(&m_mutex);
-				m_listOrgFrames.append(tmp);
-				m_listProcFrames.append(procf);
+			if (m_second >= 0 && tmp->getSecond() < m_second + m_secondGap)
+				continue;
 
-				while (m_listOrgFrames.size() > 1 && m_listOrgFrames[0]->getSecond() > tmp->getSecond())
-				{
-					m_listOrgFrames.pop_front();
-					m_listProcFrames.pop_front();
-				}
+			while (m_listFuture.size() >= m_limFut)
+			{
+				m_listFuture.front().get();
+				m_listFuture.pop_front();
 			}
+			//std::shared_future<void> future = std::async(std::launch::async, frameProc, tmp).share();
+			std::shared_future<void> future = ThreadPool::getInstance().enqueue(frameProc, tmp).share();
+			m_listFuture.append(future);
+
 		}
 		else
 		{
 			QThread::msleep(5);
 		}
+	}
+
+	while (!m_listFuture.empty())
+	{
+		m_listFuture.front().get();
+		m_listFuture.pop_front();
 	}
 
 	QMutexLocker locker(&m_mutex);
