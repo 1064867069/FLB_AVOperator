@@ -53,7 +53,6 @@ FrameSPtr VideoBrightAdjust::processFrame(FrameSPtr spf)
 	if (!spf || !spf->isVideo() || std::abs(m_bright) < 1e-4)
 		return spf;
 
-
 	AVFrame* pvf = this->getAVFrame(spf.get());
 
 	// 获取像素格式描述信息
@@ -114,9 +113,9 @@ FrameSPtr VideoBrightAdjust::processFrame(FrameSPtr spf)
 	return res;
 }
 
-void VideoBrightAdjust::setBright(float b)
+void VideoBrightAdjust::setBright(int b)
 {
-	m_bright = std::max(-1.0f, b);
+	m_bright = std::max(-1.0f, static_cast<float>(b) / 100);
 	m_bright = std::min(1.0f, m_bright);
 }
 #include <qthread.h>
@@ -243,9 +242,10 @@ FrameSPtr VideoChromAdjust::processFrame(FrameSPtr spf)
 	return res;
 }
 
-void VideoChromAdjust::setChrom(float b)
+void VideoChromAdjust::setChrom(int b)
 {
-	m_chrom = std::max(-1.0f, b);
+	m_chrom = static_cast<float>(b) / 100;
+	m_chrom = std::max(-1.0f, m_chrom);
 	m_chrom = std::min(1.0f, m_chrom);
 }
 
@@ -317,8 +317,54 @@ FrameSPtr VideoContrastAdjust::processFrame(FrameSPtr spf)
 	return res;
 }
 
-void VideoContrastAdjust::setContrast(float b)
+void VideoContrastAdjust::setContrast(int b)
 {
-	m_contrast = std::max(-1.0f, b);
+	float contrast = static_cast<float>(b) / 100;
+	m_contrast = std::max(-1.0f, contrast);
 	m_contrast = std::min(1.0f, m_contrast);
+}
+
+VideoClrTempAdjust::VideoClrTempAdjust(QObject* p) :IVideoFrameProcessor(p)
+{
+
+}
+
+FrameSPtr VideoClrTempAdjust::processFrame(FrameSPtr spf)
+{
+	if (!spf || !spf->isVideo() || std::abs(m_clrTemp) < 1e-4)
+		return spf;
+
+	AVFrame* pvf = this->getAVFrame(spf.get());
+
+	// 获取像素格式描述信息
+	const AVPixFmtDescriptor* desc = av_pix_fmt_desc_get(static_cast<AVPixelFormat>(pvf->format));
+	if (!desc || desc->nb_components <= 0) {
+		return spf;
+	}
+
+	const int depth = desc->comp[0].depth;
+	const int maxV = video::getUVMax(depth), minV = video::getYUVMin(depth);
+	auto videoManager = video::IVideoManager::getManagerByDepth(depth);
+	const int index = m_clrTemp < 0 ? 1 : 2;
+	const int height = (pvf->height >> desc->log2_chroma_h), width = (pvf->width >> desc->log2_chroma_w);
+	if (videoManager == nullptr)
+		return spf;
+
+	FrameSPtr res = spf;
+	//if (!res)
+	//	return spf;
+	pvf = this->getAVFrame(res.get());
+
+	auto func = videoManager->AddDecPerFunc(minV, maxV, std::abs(m_clrTemp));
+	for (int i = 0; i < height; ++i)
+	{
+		video::seriesProc(&pvf->data[index][i * pvf->linesize[index]], width, videoManager->perSize(), func);
+	}
+
+	return res;
+}
+
+void VideoClrTempAdjust::setClrTemp(int temp)
+{
+	m_clrTemp = static_cast<float>(temp) / 100;
 }

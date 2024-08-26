@@ -147,10 +147,10 @@
     </rect>
    </property>
    <property name="minimum">
-    <number>-40</number>
+    <number>-60</number>
    </property>
    <property name="maximum">
-    <number>40</number>
+    <number>60</number>
    </property>
    <property name="orientation">
     <enum>Qt::Horizontal</enum>
@@ -217,6 +217,62 @@
     <rect>
      <x>260</x>
      <y>80</y>
+     <width>21</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>0</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignCenter</set>
+   </property>
+  </widget>
+  <widget class="QLabel" name="m_labelClrTemp">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>110</y>
+     <width>31</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>9</pointsize>
+    </font>
+   </property>
+   <property name="text">
+    <string>色 温</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignCenter</set>
+   </property>
+  </widget>
+  <widget class="QSlider" name="m_pSliderClrTemp">
+   <property name="geometry">
+    <rect>
+     <x>50</x>
+     <y>110</y>
+     <width>201</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <property name="minimum">
+    <number>-50</number>
+   </property>
+   <property name="maximum">
+    <number>50</number>
+   </property>
+   <property name="orientation">
+    <enum>Qt::Horizontal</enum>
+   </property>
+  </widget>
+  <widget class="QLabel" name="m_labelCurClrTemp">
+   <property name="geometry">
+    <rect>
+     <x>260</x>
+     <y>110</y>
      <width>21</width>
      <height>20</height>
     </rect>

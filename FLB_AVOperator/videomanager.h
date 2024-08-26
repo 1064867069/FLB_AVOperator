@@ -132,13 +132,14 @@ namespace video
 		virtual void chromAdjust(AVFrame* pvf, const AVPixFmtDescriptor* desc, float chrom, int depth)override
 		{
 			auto data = reinterpret_cast<T**>(pvf->data);
-			int ii, jj, yi, ui, vi, y, y2, u, v, r, g, b, gap1, gap2, * pMin, * pMax, * pMid;
+			int ii, jj, yi, ui, vi, y, yg, ug, vg, u, v, r, g, b, gap1, gap2, * pMin, * pMax, * pMid;
 			int minVal = 16 * ((1 << depth) - 1) / 255;
 			int maxV = 240 * ((1 << depth) - 1) / 255, maxY = 235 * ((1 << depth) - 1) / 255;
 			int mid = (1 << (depth - 1));
 			int yi0 = 0, ui0 = 0, vi0 = 0;
 			int hStep = (1 << desc->log2_chroma_h), wStep = (1 << desc->log2_chroma_w);
 			int yLnSz = pvf->linesize[0] / perSize(), uvLnSz = pvf->linesize[1] / perSize();
+			int yp = 0, up = 0, vp = 0, ypg = 0, upg = 0, vpg = 0;
 
 			//auto getR2Y = depth <= 16 ? video::getYUV_BT601_Dep16 : video::getYUV_BT601;
 			std::tuple<int, int, int> tp3;
@@ -151,40 +152,55 @@ namespace video
 					y = data[0][yi];
 					u = data[1][ui];
 					v = data[2][vi];
-					tp3 = video::getRGB_BT601(y, u, v, mid);
-					std::tie(r, g, b) = tp3;
 
-					pMin = (r > g ? &g : &r), pMax = (r > g ? &r : &g);
-					pMin = *pMin > b ? &b : pMin;
-					pMax = *pMax > b ? pMax : &b;
-					for (auto* p : { &r,&g,&b })
-						if (p != pMin && p != pMax)
-							pMid = p;
+					//if (y != yp || u != up || v != vp)
+					if (std::abs(y - yp) > 6 || std::abs(u - up) > 6 || std::abs(v - vp) > 6)
+					{
+						yp = y;
+						up = u;
+						vp = v;
+						tp3 = video::getRGB_BT601(y, u, v, mid);
+						std::tie(r, g, b) = tp3;
 
-					gap1 = ((*pMax - *pMid));
-					gap2 = ((*pMid - *pMin));
-					gap1 *= chrom;
-					gap2 *= chrom;
-					/*if (gap1 == 0 && gap2 == 0)
-						continue;*/
+						pMin = (r > g ? &g : &r), pMax = (r > g ? &r : &g);
+						pMin = *pMin > b ? &b : pMin;
+						pMax = *pMax > b ? pMax : &b;
+						for (auto* p : { &r,&g,&b })
+							if (p != pMin && p != pMax)
+								pMid = p;
 
-					*pMax += gap1;
-					*pMin -= gap2;
-					tp3 = video::getYUV_BT601(r, g, b, mid);
-					std::tie(y2, u, v) = tp3;
-					y2 = clamp(y2, minVal, maxY) - y;
-					u = clamp(u, minVal, maxV);
-					v = clamp(v, minVal, maxV);
+						gap1 = ((*pMax - *pMid));
+						gap2 = ((*pMid - *pMin));
+						gap1 *= chrom;
+						gap2 *= chrom;
+						/*if (gap1 == 0 && gap2 == 0)
+							continue;*/
+
+						*pMax += gap1;
+						*pMin -= gap2;
+						tp3 = video::getYUV_BT601(r, g, b, mid);
+						std::tie(yg, ug, vg) = tp3;
+						ypg = yg = clamp(yg, minVal, maxY) - y;
+						upg = ug = clamp(ug, minVal, maxV) - u;
+						vpg = vg = clamp(vg, minVal, maxV) - v;
+					}
+					else
+					{
+						yg = ypg;
+						ug = upg;
+						vg = vpg;
+					}
+
 					for (int k1 = 0; k1 < hStep; ++k1)
 					{
 						int yi2 = yi + k1 * yLnSz;
 						for (int k2 = 0; k2 < wStep; ++k2)
 						{
-							data[0][yi2 + k2] += y2;
+							data[0][yi2 + k2] += yg;
 						}
 					}
-					data[1][ui] = u;
-					data[2][vi] = v;
+					data[1][ui] += ug;
+					data[2][vi] += vg;
 				}
 				yi0 += (yLnSz << desc->log2_chroma_h), ui0 += uvLnSz, vi0 += uvLnSz;
 			}

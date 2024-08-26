@@ -24,8 +24,8 @@ public:
 
 	virtual FrameSPtr processFrame(FrameSPtr)Q_DECL_OVERRIDE;
 
-	void setBright(float);
-
+public slots:
+	void setBright(int);
 
 private:
 	float m_bright = 0;
@@ -38,8 +38,8 @@ public:
 
 	virtual FrameSPtr processFrame(FrameSPtr)Q_DECL_OVERRIDE;
 
-	void setChrom(float);
-
+public slots:
+	void setChrom(int);
 
 private:
 	float m_chrom = 0;
@@ -52,12 +52,28 @@ public:
 
 	virtual FrameSPtr processFrame(FrameSPtr)Q_DECL_OVERRIDE;
 
-	void setContrast(float);
-
+public slots:
+	void setContrast(int);
 
 private:
 	float m_contrast = 0;
 };
+
+//色温
+class VideoClrTempAdjust : public IVideoFrameProcessor
+{
+public:
+	explicit VideoClrTempAdjust(QObject* p = nullptr);
+
+	virtual FrameSPtr processFrame(FrameSPtr)Q_DECL_OVERRIDE;
+
+public slots:
+	void setClrTemp(int);
+
+private:
+	float m_clrTemp = 0;
+};
+
 
 #endif // !VIDEOPROCESS_H
 

@@ -736,7 +736,7 @@ void VideoFrameReadManager::procVFrames()
 		m_listOrgFrames.append(spf);
 		m_listProcFrames.append(procf);
 		m_secondGap = m_secondGap * 0.5 + gap * 0.5;
-		//qDebug() << m_secondGap;
+		qDebug() << m_secondGap;
 
 		while (m_listOrgFrames.size() > 1 && m_listOrgFrames[0]->getSecond() > spf->getSecond())
 		{

@@ -160,7 +160,20 @@ namespace video
 
 namespace video
 {
+	inline int getYUVMin(int depth)
+	{
+		return 16 * ((1 << depth) - 1) / 255;
+	}
 
+	inline int getYMax(int depth)
+	{
+		return 235 * ((1 << depth) - 1) / 255;
+	}
+
+	inline int getUVMax(int depth)
+	{
+		return 240 * ((1 << depth) - 1) / 255;
+	}
 
 	inline std::tuple<int, int, int> getRGB_BT601(int y, int u, int v, int mid)
 	{

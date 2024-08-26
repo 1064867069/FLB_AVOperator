@@ -7,6 +7,7 @@ class VideoBrightAdjust;
 class VideoProcessList;
 class VideoChromAdjust;
 class VideoContrastAdjust;
+class VideoClrTempAdjust;
 
 class DlgVideoParam :public QDialog
 {
@@ -14,10 +15,11 @@ class DlgVideoParam :public QDialog
 public:
 	DlgVideoParam(VideoProcessList*, QWidget* p = nullptr);
 
+private:
+	void sliderBind();
+
 private slots:
-	void onBrightChanged(int);
-	void onChromChanged(int);
-	void onContrastChanged(int);
+	void onSliderChanged(int);
 
 signals:
 	void paramUpdated();
@@ -26,7 +28,9 @@ private:
 	std::shared_ptr<VideoBrightAdjust> m_spVideoBrightProc;
 	std::shared_ptr<VideoChromAdjust> m_spVideoChromProc;
 	std::shared_ptr<VideoContrastAdjust> m_spVideoContrastProc;
+	std::shared_ptr<VideoClrTempAdjust> m_spVideoClrTempProc;
 
+	QHash<QSlider*, QLabel*> m_hashSliderLabel;
 	Ui::DlgVideoParam ui;
 };
 #endif
