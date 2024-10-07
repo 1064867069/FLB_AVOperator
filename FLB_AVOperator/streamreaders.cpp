@@ -113,7 +113,8 @@ IVideoStream::IVideoStream()
 
 IVideoStream::~IVideoStream()
 {
-	delete m_pRectSetWidget;
+	//delete m_pRectSetWidget;
+	m_pRectSetWidget->deleteLater();
 }
 
 VideoStreamPtr IVideoStream::getSharedPointer()
@@ -136,6 +137,8 @@ void IVideoStream::bindStreamManager(const std::shared_ptr<StreamManager>& spMan
 
 	auto pVideoManager = spManager->getVideoManager();
 	this->bindVideoPlayer(pVideoManager->getVideoPlayer());
+
+	connect(pVideoManager, &VideoStreamManager::streamEnterSetting, this, &IVideoStream::onStreamEnterSetting);
 }
 
 void IVideoStream::onOutParamUpdated()
@@ -154,8 +157,8 @@ FrameSPtr IVideoStream::swsObjFrame(const FrameSPtr& spf)
 		SWS_BILINEAR, nullptr, nullptr, nullptr
 	);
 
-	//qDebug() << pf->width << pf->height << pf->format << " 重采样参数 基类";
-	//qDebug() << m_width << m_height << (int)m_pixelFormat << "目标参数";
+	qDebug() << pf->width << pf->height << pf->format << " 重采样参数 基类";
+	qDebug() << m_width << m_height << (int)m_pixelFormat << "目标参数";
 	if (!swsCtx)
 	{
 		qDebug() << __FUNCTION__ << "swsCtx allocate failed.";
@@ -243,11 +246,15 @@ void IVideoStream::setRemoved(bool removed)
 {
 	m_bRemoved = removed;
 	this->updateVersion();
+	if (removed)
+	{
+		m_pRectSetWidget->hide();
+	}
 }
 
 void IVideoStream::hideRectWidget()
 {
-	if (m_pRectSetWidget)
+	if (m_pRectSetWidget && !m_pRectSetWidget->isHidden())
 		m_pRectSetWidget->hide();
 }
 
@@ -327,6 +334,15 @@ void IVideoStream::onBlockPressed()
 	{
 		//emit StreamWillAdjust();
 		m_pRectSetWidget->show();
+		//m_pRectSetWidget->enterSetting();
+	}
+}
+
+void IVideoStream::onStreamEnterSetting(IVideoStream* pStream)
+{
+	if (pStream != this)
+	{
+		this->hideRectWidget();
 	}
 }
 
@@ -334,6 +350,8 @@ FAVFileBaseStream::FAVFileBaseStream(const QString& fpath, AVMediaType type)
 	:m_upFrameBuffer(std::make_unique<FAVFrameBuffer>(3)), m_filePath(fpath), m_pPacket(av_packet_alloc())
 {
 	this->openFile(fpath, type);
+	if (!m_valid)
+		return;
 	m_bIsInited = true;
 	this->seekSecond(0);
 	auto spf = m_upFrameBuffer->frontFrame();
@@ -943,8 +961,8 @@ void VideoFileStream::onOutParamUpdated()
 		SWS_BILINEAR, nullptr, nullptr, nullptr
 	);
 
-	//qDebug() << m_srcWidth << m_srcHeight << (int)m_srcPixFormat << " 重采样参数";
-	//qDebug() << m_width << m_height << (int)m_pixelFormat << "目标参数";
+	qDebug() << m_srcWidth << m_srcHeight << (int)m_srcPixFormat << " 重采样参数";
+	qDebug() << m_width << m_height << (int)m_pixelFormat << "目标参数";
 	if (!swsCtx) {
 		qDebug() << "Error: Cannot initialize the conversion context.\n";
 		return;
@@ -977,5 +995,3 @@ FrameSPtr VideoFileStream::swsObjFrame(const FrameSPtr& spf)
 	m_mutexSws.unlock();
 	return res;
 }
-
-

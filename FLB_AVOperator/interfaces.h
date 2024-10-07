@@ -276,6 +276,8 @@ protected slots:
 
 	void onBlockPressed();
 
+	void onStreamEnterSetting(IVideoStream* pStream);
+
 	void initStreamRectWidget();
 
 	void onWillAdjust();

@@ -305,6 +305,7 @@ bool AVStreamItemWidget::eventFilter(QObject* watched, QEvent* event)
 				}
 			}
 			emit pStreamBlock->pressed();
+			return true;
 			//pStreamBlock->setFocus();
 		}
 		else if (event->type() == QEvent::MouseButtonRelease)
@@ -326,7 +327,9 @@ bool AVStreamItemWidget::eventFilter(QObject* watched, QEvent* event)
 				m_pBlockForMenu = pStreamBlock;
 				m_pMenuBlock->exec(m_pBlockForMenu->mapToGlobal(mouseEvent->pos()));
 			}
+			return true;
 		}
+
 	}
 
 	return QWidget::eventFilter(watched, event);

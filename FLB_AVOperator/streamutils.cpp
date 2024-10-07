@@ -472,7 +472,10 @@ void VideoStreamManager::onStreamWillSet(IVideoStream* pStream)
 	}
 
 	if (pStream)
+	{
 		m_spStreamSetting = pStream->getSharedPointer();
+	}
+	emit streamEnterSetting(m_spStreamSetting.get());
 }
 
 void VideoStreamManager::onStreamWillSetDefault()

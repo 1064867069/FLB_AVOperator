@@ -128,6 +128,7 @@ public:
 	virtual void onOutParamUpdated()override;
 
 	virtual	FrameSPtr swsObjFrame(const FrameSPtr& spf)override;
+
 private:
 	FAVFileBaseStream m_fileStream;
 

@@ -573,8 +573,8 @@ int IAudioStream::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     return _id;
 }
 struct qt_meta_stringdata_IVideoStream_t {
-    QByteArrayData data[11];
-    char stringdata0[172];
+    QByteArrayData data[13];
+    char stringdata0[201];
 };
 #define QT_MOC_LITERAL(idx, ofs, len) \
     Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
@@ -591,16 +591,19 @@ QT_MOC_LITERAL(4, 56, 20), // "streamWillAdjustThis"
 QT_MOC_LITERAL(5, 77, 13), // "IVideoStream*"
 QT_MOC_LITERAL(6, 91, 17), // "onRectPropChanged"
 QT_MOC_LITERAL(7, 109, 14), // "onBlockPressed"
-QT_MOC_LITERAL(8, 124, 20), // "initStreamRectWidget"
-QT_MOC_LITERAL(9, 145, 12), // "onWillAdjust"
-QT_MOC_LITERAL(10, 158, 13) // "updateVersion"
+QT_MOC_LITERAL(8, 124, 20), // "onStreamEnterSetting"
+QT_MOC_LITERAL(9, 145, 7), // "pStream"
+QT_MOC_LITERAL(10, 153, 20), // "initStreamRectWidget"
+QT_MOC_LITERAL(11, 174, 12), // "onWillAdjust"
+QT_MOC_LITERAL(12, 187, 13) // "updateVersion"
 
     },
     "IVideoStream\0StreamWillAdjust\0\0"
     "StreamAdjustWillFinished\0streamWillAdjustThis\0"
     "IVideoStream*\0onRectPropChanged\0"
-    "onBlockPressed\0initStreamRectWidget\0"
-    "onWillAdjust\0updateVersion"
+    "onBlockPressed\0onStreamEnterSetting\0"
+    "pStream\0initStreamRectWidget\0onWillAdjust\0"
+    "updateVersion"
 };
 #undef QT_MOC_LITERAL
 
@@ -610,7 +613,7 @@ static const uint qt_meta_data_IVideoStream[] = {
        7,       // revision
        0,       // classname
        0,    0, // classinfo
-       8,   14, // methods
+       9,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
@@ -618,16 +621,17 @@ static const uint qt_meta_data_IVideoStream[] = {
        3,       // signalCount
 
  // signals: name, argc, parameters, tag, flags
-       1,    0,   54,    2, 0x06 /* Public */,
-       3,    0,   55,    2, 0x06 /* Public */,
-       4,    1,   56,    2, 0x06 /* Public */,
+       1,    0,   59,    2, 0x06 /* Public */,
+       3,    0,   60,    2, 0x06 /* Public */,
+       4,    1,   61,    2, 0x06 /* Public */,
 
  // slots: name, argc, parameters, tag, flags
-       6,    1,   59,    2, 0x09 /* Protected */,
-       7,    0,   62,    2, 0x09 /* Protected */,
-       8,    0,   63,    2, 0x09 /* Protected */,
-       9,    0,   64,    2, 0x09 /* Protected */,
-      10,    0,   65,    2, 0x09 /* Protected */,
+       6,    1,   64,    2, 0x09 /* Protected */,
+       7,    0,   67,    2, 0x09 /* Protected */,
+       8,    1,   68,    2, 0x09 /* Protected */,
+      10,    0,   71,    2, 0x09 /* Protected */,
+      11,    0,   72,    2, 0x09 /* Protected */,
+      12,    0,   73,    2, 0x09 /* Protected */,
 
  // signals: parameters
     QMetaType::Void,
@@ -637,6 +641,7 @@ static const uint qt_meta_data_IVideoStream[] = {
  // slots: parameters
     QMetaType::Void, QMetaType::QRectF,    2,
     QMetaType::Void,
+    QMetaType::Void, 0x80000000 | 5,    9,
     QMetaType::Void,
     QMetaType::Void,
     QMetaType::Void,
@@ -655,15 +660,23 @@ void IVideoStream::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id
         case 2: _t->streamWillAdjustThis((*reinterpret_cast< IVideoStream*(*)>(_a[1]))); break;
         case 3: _t->onRectPropChanged((*reinterpret_cast< const QRectF(*)>(_a[1]))); break;
         case 4: _t->onBlockPressed(); break;
-        case 5: _t->initStreamRectWidget(); break;
-        case 6: _t->onWillAdjust(); break;
-        case 7: _t->updateVersion(); break;
+        case 5: _t->onStreamEnterSetting((*reinterpret_cast< IVideoStream*(*)>(_a[1]))); break;
+        case 6: _t->initStreamRectWidget(); break;
+        case 7: _t->onWillAdjust(); break;
+        case 8: _t->updateVersion(); break;
         default: ;
         }
     } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
         switch (_id) {
         default: *reinterpret_cast<int*>(_a[0]) = -1; break;
         case 2:
+            switch (*reinterpret_cast<int*>(_a[1])) {
+            default: *reinterpret_cast<int*>(_a[0]) = -1; break;
+            case 0:
+                *reinterpret_cast<int*>(_a[0]) = qRegisterMetaType< IVideoStream* >(); break;
+            }
+            break;
+        case 5:
             switch (*reinterpret_cast<int*>(_a[1])) {
             default: *reinterpret_cast<int*>(_a[0]) = -1; break;
             case 0:
@@ -724,13 +737,13 @@ int IVideoStream::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 8)
+        if (_id < 9)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 8;
+        _id -= 9;
     } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 8)
+        if (_id < 9)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 8;
+        _id -= 9;
     }
     return _id;
 }

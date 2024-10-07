@@ -515,7 +515,7 @@ QImage FFrame::toQImage()const
 	// 为目标图像数据分配内存
 	uint8_t* rgbData[1]; // 输出的图像数据
 	int rgbLineSize[1];  // 输出图像每行的字节数
-	int bytesPerLine = frame->width * 3;  // RGB24的每行字节数 = 宽度 * 3（R、G、B）
+	int bytesPerLine = frame->linesize[0] * 3;  // RGB24的每行字节数 = 宽度 * 3（R、G、B）
 	rgbData[0] = (uint8_t*)malloc(bytesPerLine * frame->height);  // 分配内存
 	rgbLineSize[0] = bytesPerLine;
 
@@ -524,7 +524,9 @@ QImage FFrame::toQImage()const
 
 	// 使用转换后的RGB数据创建QImage
 	QImage image(rgbData[0], frame->width, frame->height, rgbLineSize[0], QImage::Format_RGB888,
-		[](void* rgbData) {free(rgbData); }, rgbData[0]);
+		[](void* pRgbData) {
+			free(pRgbData);
+		}, rgbData[0]);
 
 	// 释放SwsContext
 	sws_freeContext(swsCtx);
@@ -781,7 +783,7 @@ void VideoFrameSuperPosed::redrawHide()
 			if (!spStream->removed())
 			{
 				auto spFrame = m_hashStreamFrame[spStream];
-				spStream->swsObjFrame(spFrame);
+				spFrame = spStream->swsObjFrame(spFrame);
 				this->drawFrom(std::move(spFrame), spStream->xPos(), spStream->yPos());
 				m_hashDrawnVersion[spStream] = spStream->version();
 			}

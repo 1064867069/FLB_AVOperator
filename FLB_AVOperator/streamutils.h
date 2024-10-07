@@ -101,6 +101,8 @@ signals:
 	void videoParamUpdated();
 
 	void streamRemoved(VideoStreamPtr spStream);
+
+	void streamEnterSetting(IVideoStream*);
 	//void needRefresh();
 private:
 	void searchEndStream();
