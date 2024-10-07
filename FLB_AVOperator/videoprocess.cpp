@@ -13,15 +13,25 @@ VideoProcessList::VideoProcessList(QObject* p) : IVideoFrameProcessor(p)
 
 }
 
+bool VideoProcessList::skip()const
+{
+	for (auto spProc : m_listProcs)
+	{
+		if (!spProc->skip())
+			return false;
+	}
+	return true;
+}
+
 FrameSPtr VideoProcessList::processFrame(FrameSPtr spf)
 {
-	if (m_listProcs.size() == 0)
+	if (this->skip())
 		return spf;
 
 	auto res = spf->deepVFClone();
 	if (!res)
 		return spf;
-
+	res->setExternInfo("视频帧处理器复制");
 	for (auto& proc : m_listProcs)
 	{
 		res = proc->processFrame(std::move(res));
@@ -46,6 +56,11 @@ void VideoProcessList::addVProcessor(const VProcessSPtr& spProc)
 VideoBrightAdjust::VideoBrightAdjust(QObject* p) : IVideoFrameProcessor(p)
 {
 
+}
+
+bool VideoBrightAdjust::skip()const
+{
+	return std::abs(m_bright) < 1e-4;
 }
 
 FrameSPtr VideoBrightAdjust::processFrame(FrameSPtr spf)
@@ -122,6 +137,11 @@ void VideoBrightAdjust::setBright(int b)
 VideoChromAdjust::VideoChromAdjust(QObject* p) : IVideoFrameProcessor(p)
 {
 
+}
+
+bool VideoChromAdjust::skip()const
+{
+	return std::abs(m_chrom) < 1e-4;
 }
 
 FrameSPtr VideoChromAdjust::processFrame(FrameSPtr spf)
@@ -254,6 +274,12 @@ VideoContrastAdjust::VideoContrastAdjust(QObject* p) :IVideoFrameProcessor(p)
 
 }
 
+bool VideoContrastAdjust::skip()const
+{
+	return std::abs(m_contrast) < 1e-4;
+}
+
+
 FrameSPtr VideoContrastAdjust::processFrame(FrameSPtr spf)
 {
 	if (!spf || !spf->isVideo() || std::abs(m_contrast) < 1e-4)
@@ -327,6 +353,11 @@ void VideoContrastAdjust::setContrast(int b)
 VideoClrTempAdjust::VideoClrTempAdjust(QObject* p) :IVideoFrameProcessor(p)
 {
 
+}
+
+bool VideoClrTempAdjust::skip()const
+{
+	return std::abs(m_clrTemp) < 1e-4;
 }
 
 FrameSPtr VideoClrTempAdjust::processFrame(FrameSPtr spf)

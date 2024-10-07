@@ -1,5 +1,17 @@
 #include "avoperator.h"
+#include "audiomanager.h"
+#include "videomanager.h"
 #include <QDebug>
+
+// 将秒数转换为 time_base 下的 PTS
+int64_t seconds_to_pts(double seconds, AVRational time_base) {
+	// 将秒数转化为 AVRational {seconds, 1}
+	AVRational sec_rational = { static_cast<int>(seconds * 1000000), 1000000 };  // 用微秒来表达
+
+	// 使用 av_rescale_q 将秒数转换为给定时间基下的 PTS
+	int64_t pts = av_rescale_q(sec_rational.num, sec_rational, time_base);
+	return pts;
+}
 
 void FAVInfo::reset()noexcept
 {
@@ -44,12 +56,78 @@ void FAVProcessors::reset()noexcept
 	}
 }
 
-
+//std::atomic<int> g_num(0);
 FFrame::FFrame()
 {
-
 	m_pFrame = av_frame_alloc();
+	//++g_num;
+}
 
+FFrame::FFrame(AVSampleFormat fmt, AVChannelLayout ch_layout, int sample_rate, int nb_samples) : FFrame()
+{
+	m_pFrame->format = fmt;
+	m_pFrame->ch_layout = ch_layout;
+	m_pFrame->channels = ch_layout.nb_channels;
+	m_pFrame->nb_samples = nb_samples;
+	m_pFrame->sample_rate = sample_rate;
+	m_pFrame->time_base = { 1, sample_rate };
+
+	if (av_frame_get_buffer(m_pFrame, 32) < 0 || av_frame_make_writable(m_pFrame) < 0)
+		qDebug() << "frame buffer get failed!";
+	else
+	{
+		if (av_sample_fmt_is_planar(fmt))
+		{
+			for (int c = 0; c < m_pFrame->ch_layout.nb_channels; ++c)
+				memset(m_pFrame->data[c], 0, m_pFrame->linesize[c]);
+		}
+		else
+		{
+			memset(m_pFrame->data[0], 0, m_pFrame->linesize[0]);
+		}
+		m_valid = true;
+	}
+
+}
+
+//QHash<FFrame*, uint8_t*> mapAlloc;
+//QMutex tmpMutex;
+FFrame::FFrame(AVPixelFormat fmt, int height, int width, const QString& clr) : FFrame()
+{
+	if (m_pFrame)
+	{
+		m_pFrame->format = fmt;
+		m_pFrame->height = height;
+		m_pFrame->width = width;
+
+		const AVPixFmtDescriptor* desc = av_pix_fmt_desc_get(static_cast<AVPixelFormat>(fmt));
+		if (!desc || desc->nb_components <= 0) {
+			return;
+		}
+
+		if (av_image_fill_linesizes(m_pFrame->linesize, fmt, width) < 0)
+			return;
+
+		if (!video::VideoMemoryManager::getInstance()->allocateImageMem(m_pFrame->data, m_pFrame->linesize,
+			m_pFrame->width, m_pFrame->height, fmt))
+			return;
+		//qDebug() << this << "分配" << m_pFrame->data[0];
+
+		/*{
+			QMutexLocker locker(&tmpMutex);
+			if (mapAlloc.contains(this))
+				qDebug() << this << "重新分配！";
+			mapAlloc[this] = m_pFrame->data[0];
+		}*/
+		QColor color(clr);
+		if (!color.isValid())
+			color = Qt::black;
+
+		if (clr != "")
+			this->fillColor(clr);
+
+		m_valid = true;
+	}
 }
 
 //FFrame::FFrame(const FFrame& f) : FFrame()
@@ -65,7 +143,20 @@ FFrame::~FFrame()
 		if (this->isVideo())
 		{
 			video::VideoMemoryManager::getInstance()->freeMem(m_pFrame->data[0]);
+			/*{
+				QMutexLocker locker(&tmpMutex);
+				if (mapAlloc.contains(this) && mapAlloc[this] != m_pFrame->data[0])
+				{
+					qDebug() << this << "分配了" << mapAlloc[this] << " 想释放" << m_pFrame->data[0];
+					qDebug() << "额外信息：" << m_externInfo;
+				}
+			}*/
+			//qDebug() << this << "释放" << m_pFrame->data[0];
 		}
+		else if (m_externInfo != "")
+			qDebug() << m_externInfo;
+		/*--g_num;
+		qDebug() << "释放帧，剩余" << g_num.load();*/
 
 		av_frame_unref(m_pFrame);
 		av_frame_free(&m_pFrame);
@@ -106,8 +197,9 @@ std::shared_ptr<FFrame> FFrame::deepAFClone()const
 		return nullptr;
 	}
 
+	res->m_valid = m_valid;
+	res->m_flag = m_flag;
 	return res;
-
 }
 
 std::shared_ptr<FFrame> FFrame::deepVFClone()const
@@ -141,6 +233,9 @@ std::shared_ptr<FFrame> FFrame::deepVFClone()const
 	memcpy(dst->linesize, m_pFrame->linesize, sizeof(int) * 8);
 	av_image_copy(dst->data, dst->linesize, (const uint8_t**)m_pFrame->data, m_pFrame->linesize,
 		static_cast<AVPixelFormat>(m_pFrame->format), m_pFrame->width, m_pFrame->height);
+
+	res->m_valid = true;
+	res->m_flag = m_flag;
 	return res;
 }
 
@@ -165,6 +260,43 @@ int FFrame::decode(AVCodecContext* dec_ctx, AVStream* strm)
 	return ret;
 }
 
+int FFrame::send2Encoder(AVCodecContext* encCtx)
+{
+	if (!this->valid() || !encCtx)
+	{
+		return -999;
+	}
+
+	int ret = avcodec_send_frame(encCtx, m_pFrame);
+	return ret;
+}
+
+void FFrame::setPts(int64_t pts)
+{
+	m_pFrame->pts = pts;
+}
+
+void FFrame::setPtsSecond(double sec)
+{
+	if (m_pFrame && m_valid)
+	{
+		AVRational tb = m_pFrame->time_base;
+		m_pFrame->pts = round(sec * tb.den / tb.num);
+	}
+}
+
+void FFrame::setTimeBase(int num, int den)
+{
+	if (m_pFrame && m_valid)
+		m_pFrame->time_base = { num, den };
+}
+
+void FFrame::setDuration(int d)
+{
+	if (this->valid())
+		m_pFrame->pkt_duration = d;
+}
+
 int64_t FFrame::getPts()const
 {
 	return m_pFrame->pts;
@@ -173,6 +305,19 @@ int64_t FFrame::getPts()const
 double FFrame::getSecond()const
 {
 	return av_q2d(m_pFrame->time_base) * this->getPts();
+}
+
+double FFrame::getDurationSecond()const
+{
+	if (this->isAudio())
+		return static_cast<double>(m_pFrame->nb_samples) / m_pFrame->sample_rate;
+	else
+		return av_q2d(m_pFrame->time_base) * m_pFrame->pkt_duration;
+}
+
+double FFrame::getEndSecond()const
+{
+	return this->getSecond() + this->getDurationSecond();
 }
 
 AVRational FFrame::getTimeBase()const
@@ -190,6 +335,208 @@ int FFrame::height()const
 	return m_pFrame->height;
 }
 
+void FFrame::copy2AudioBufferPlanar(std::vector<std::vector<uint8_t>>& buffer, double second)
+{
+	if (!this->isAudio())
+		return;
+
+	AVSampleFormat format = (AVSampleFormat)m_pFrame->format;
+	int data_size = av_get_bytes_per_sample(format);
+	int newSizePerChannel = m_pFrame->nb_samples * data_size;;
+	int start = buffer.size() > 0 ? buffer[0].size() : 0;
+	int channel = m_pFrame->ch_layout.nb_channels;
+	if (channel > buffer.size())
+	{
+		int ors = buffer.size();
+		buffer.resize(channel);
+		if (ors > 0)
+		{
+			for (int i = ors; i < buffer.size(); ++i)
+				buffer[i] = buffer[0];
+		}
+	}
+
+	for (auto& chBuff : buffer)
+	{
+		chBuff.resize(newSizePerChannel + chBuff.size());
+	}
+	if (av_sample_fmt_is_planar(format))
+	{
+		for (int c = 0; c < m_pFrame->ch_layout.nb_channels; ++c)
+		{
+			memcpy(&buffer[c][start], m_pFrame->data[c], newSizePerChannel);
+		}
+	}
+	else
+	{
+		int cur = 0, pCur = start;
+		for (int i = 0; i < m_pFrame->nb_samples; ++i)
+		{
+			for (int c = 0; c < channel; ++c)
+			{
+				memcpy(&buffer[c][pCur], &m_pFrame->data[0][cur], data_size);
+				cur += data_size;
+			}
+			pCur += data_size;
+		}
+	}
+}
+
+void FFrame::fromAudioBufferPlanar(std::vector<std::vector<uint8_t>>& buffer, float factor)
+{
+	int channel = std::min((int)buffer.size(), m_pFrame->ch_layout.nb_channels);
+	if (channel < 1 || !m_valid || buffer[0].size() == 0)
+		return;
+
+	/*for (int i = 0; i < buffer.size(); ++i)
+		buffer[i].clear();
+	return;*/
+
+	auto format = (AVSampleFormat)m_pFrame->format;
+	auto amPtr = audio::getManagerPtr(format);
+	int data_size = amPtr->perSize(), sizePerChannel = m_pFrame->nb_samples * amPtr->perSize();
+	int cpy_size = std::min(m_pFrame->nb_samples, static_cast<int>(buffer[0].size() / data_size));
+	if (av_sample_fmt_is_planar(format))
+	{
+		for (int c = 0; c < channel; ++c)
+		{
+			amPtr->Add2OutBuffer(m_pFrame->data[c], &buffer[c][0], factor, cpy_size);
+		}
+	}
+	else
+	{
+		int cur = 0, pCur = 0;
+		int restChannel = m_pFrame->ch_layout.nb_channels - channel;
+		for (int i = 0; i < cpy_size; ++i)
+		{
+			for (int c = 0; c < channel; ++c)
+			{
+				amPtr->Add2OutBuffer(&m_pFrame->data[0][cur], &buffer[c][pCur], factor, 1);
+				cur += data_size;
+			}
+			cur += (restChannel)*data_size;
+			pCur += data_size;
+		}
+	}
+
+	for (auto& buf : buffer)
+	{
+		buf.erase(buf.begin(), buf.begin() + std::min(static_cast<size_t>(sizePerChannel), buf.size()));
+	}
+}
+
+void FFrame::drawFrom(FrameSPtr other, int x, int y)
+{
+	if (!this->isVideo() || !other || !other->isVideo())
+		return;
+
+	auto srcFrame = other->m_pFrame;
+	const AVPixFmtDescriptor* desc = av_pix_fmt_desc_get(static_cast<AVPixelFormat>(m_pFrame->format));
+	if (m_pFrame->format != srcFrame->format || !desc || desc->nb_components <= 0) {
+		return;
+	}
+
+	auto videoManager = video::IVideoManager::getManagerByDepth(desc->comp[0].depth);
+	if (videoManager == nullptr)
+		return;
+
+	videoManager->coverFrame(m_pFrame, srcFrame, x, y);
+}
+
+void FFrame::outPutSample()
+{
+	if (valid())
+	{
+		QList<uint8_t> res;
+		for (int i = 0; i < m_pFrame->nb_samples; ++i)
+		{
+			res.push_back(m_pFrame->data[0][i]);
+		}
+
+		qDebug() << res;
+	}
+}
+
+void FFrame::outPutImage(int c, int step)
+{
+	if (valid())
+	{
+		c = std::min(2, c);
+		c = std::max(0, c);
+
+		// 获取像素格式描述信息
+		const AVPixFmtDescriptor* desc = av_pix_fmt_desc_get(static_cast<AVPixelFormat>(m_pFrame->format));
+		if (!desc || desc->nb_components <= 0) {
+			return;
+		}
+		QList<uint8_t> res;
+		int mvh = 0, mvw = 0;
+		if (c > 0)
+		{
+			mvh = desc->log2_chroma_h;
+			mvw = desc->log2_chroma_w;
+		}
+		for (int i = 0; i < (m_pFrame->height >> mvh); i += step)
+		{
+			for (int j = 0; j < (m_pFrame->width >> mvw); j += step)
+				res.push_back(m_pFrame->data[c][i * m_pFrame->linesize[c] + j]);
+		}
+		qDebug() << res;
+	}
+}
+
+void FFrame::setExternInfo(const QString& info)
+{
+	m_externInfo = info;
+}
+
+void FFrame::setFlag(FrameFlag flag)
+{
+	m_flag = flag;
+}
+
+QImage FFrame::toQImage()const
+{
+	if (!this->isVideo())
+		return QImage();
+
+	AVFrame* frame = m_pFrame;
+	// 创建SWS上下文用于格式转换，将YUV转为RGB
+	SwsContext* swsCtx = sws_getContext(
+		frame->width, frame->height, (AVPixelFormat)frame->format,  // 源图像宽度、高度、格式
+		frame->width, frame->height, AV_PIX_FMT_RGB24,              // 目标图像格式为RGB24
+		SWS_BILINEAR, nullptr, nullptr, nullptr);
+
+	if (!swsCtx) {
+		qDebug() << "Failed to create SwsContext!";
+		return QImage();
+	}
+
+	// 为目标图像数据分配内存
+	uint8_t* rgbData[1]; // 输出的图像数据
+	int rgbLineSize[1];  // 输出图像每行的字节数
+	int bytesPerLine = frame->width * 3;  // RGB24的每行字节数 = 宽度 * 3（R、G、B）
+	rgbData[0] = (uint8_t*)malloc(bytesPerLine * frame->height);  // 分配内存
+	rgbLineSize[0] = bytesPerLine;
+
+	// 将AVFrame中的YUV数据转换为RGB数据
+	sws_scale(swsCtx, frame->data, frame->linesize, 0, frame->height, rgbData, rgbLineSize);
+
+	// 使用转换后的RGB数据创建QImage
+	QImage image(rgbData[0], frame->width, frame->height, rgbLineSize[0], QImage::Format_RGB888,
+		[](void* rgbData) {free(rgbData); }, rgbData[0]);
+
+	// 释放SwsContext
+	sws_freeContext(swsCtx);
+
+	return image;
+}
+
+FrameFlag FFrame::flag()const
+{
+	return m_flag;
+}
+
 bool FFrame::valid()const
 {
 	return m_valid;
@@ -197,12 +544,17 @@ bool FFrame::valid()const
 
 bool FFrame::isAudio()const
 {
-	return m_pFrame && m_pFrame->nb_samples > 0;
+	return m_valid && m_pFrame && m_pFrame->nb_samples > 0;
 }
 
 bool FFrame::isVideo()const
 {
-	return m_pFrame && m_pFrame->width && m_pFrame->height > 0;
+	return m_valid && m_pFrame && m_pFrame->width > 0 && m_pFrame->height > 0;
+}
+
+int FFrame::getSample()const
+{
+	return m_valid ? m_pFrame->nb_samples : 0;
 }
 
 int FFrame::swrFrame(SwrContext* swrCtx, unsigned char* outBuf, int max_size)
@@ -220,6 +572,20 @@ int FFrame::swrFrame(SwrContext* swrCtx, unsigned char* outBuf, int max_size)
 	return swr_size;
 }
 
+int FFrame::swrFrame(SwrContext* swrCtx, AVFrame* other, int max_size)
+{
+	if (m_pFrame->nb_samples <= 0)
+	{
+		return 0;
+	}
+
+	int swr_size = swr_convert(swrCtx, // 音频采样器的实例
+		other->data, max_size, // 输出的数据内容和数据大小
+		(const uint8_t**)m_pFrame->data, m_pFrame->nb_samples); // 输入的数据内容和数据大小
+
+	return swr_size;
+}
+
 int FFrame::swsVideoFrame(SwsContext* swsCtx, int sh, std::shared_ptr<FFrame> yuvFrame)
 {
 	if (!yuvFrame)
@@ -230,8 +596,240 @@ int FFrame::swsVideoFrame(SwsContext* swsCtx, int sh, std::shared_ptr<FFrame> yu
 
 void FFrame::imageRelate(uint8_t* buffer, AVPixelFormat format, int w, int h)
 {
+	if (buffer == nullptr || w <= 0 || h <= 0)
+		return;
+
 	av_image_fill_arrays(m_pFrame->data, m_pFrame->linesize, buffer,
 		format, w, h, 1);
+	m_pFrame->format = format;
+	m_pFrame->height = h;
+	m_pFrame->width = w;
+	m_valid = true;
+}
+
+AVFrame* FFrame::allocVideoFrame(AVPixelFormat fmt, int height, int width)
+{
+	AVFrame* pFrame = av_frame_alloc();
+	if (!pFrame)
+		return pFrame;
+
+	pFrame->format = fmt;
+	pFrame->height = height;
+	pFrame->width = width;
+
+	const AVPixFmtDescriptor* desc = av_pix_fmt_desc_get(static_cast<AVPixelFormat>(fmt));
+	if (!desc || desc->nb_components <= 0) {
+		av_frame_free(&pFrame);
+		return nullptr;
+	}
+
+	if (av_image_fill_linesizes(pFrame->linesize, fmt, width) < 0)
+	{
+		av_frame_free(&pFrame);
+		return nullptr;
+	}
+
+	if (!video::VideoMemoryManager::getInstance()->allocateImageMem(pFrame->data, pFrame->linesize,
+		pFrame->width, pFrame->height, fmt))
+	{
+		av_frame_free(&pFrame);
+		return nullptr;
+	}
+	return pFrame;
+}
+
+void FFrame::fillColor(const QColor& color)
+{
+	if (!this->valid())
+		return;
+
+	const AVPixFmtDescriptor* desc = av_pix_fmt_desc_get(static_cast<AVPixelFormat>(m_pFrame->format));
+	if (!desc || desc->nb_components <= 0) {
+		return;
+	}
+
+	int depth = desc->comp[0].depth;
+	float ratio = ((1 << depth) - 1) / 255.0f;
+	int red = color.red() * ratio;
+	int green = color.green() * ratio;
+	int blue = color.blue() * ratio;
+
+	int y, u, v;
+	std::tie(y, u, v) = video::getYUV_BT601_DV(red, green, blue, depth);
+
+	auto videoManager = video::IVideoManager::getManagerByDepth(depth);
+	if (videoManager == nullptr)
+		return;
+
+	videoManager->coverYUV(m_pFrame, y, u, v);
+}
+
+VideoFrameSuperPosed::VideoFrameSuperPosed(AVPixelFormat fmt, int height, int width, const QString& clr) :
+	FFrame(fmt, height, width, ""), m_clrFill(clr)
+{
+
+}
+
+std::shared_ptr<FFrame> VideoFrameSuperPosed::deepVFClone()const
+{
+	if (!this->isVideo())
+		return nullptr;
+
+	auto res = std::make_shared<VideoFrameSuperPosed>((AVPixelFormat)m_pFrame->format, m_pFrame->height,
+		m_pFrame->width, m_clrFill.name());
+
+	// 复制帧的参数（宽度、高度、格式等）
+	if (av_frame_copy_props(res->m_pFrame, m_pFrame) < 0)
+		return nullptr;
+
+	for (auto& spStream : m_hashStreamFrame.keys())
+		res->addStreamFrame(spStream, m_hashStreamFrame[spStream]);
+
+	res->m_pStreamHide = m_pStreamHide;
+	if (m_drawnByHide)
+		res->redrawHide();
+	else
+		res->redrawWhole();
+
+	//qDebug() << res->getSecond();
+	return res;
+}
+
+int VideoFrameSuperPosed::swsVideoFrame(SwsContext* swsCtx, int sh, std::shared_ptr<FFrame> yuvFrame)
+{
+	if (m_drawnByHide && !m_pStreamHide)
+		this->redrawWhole();
+	else if (m_pStreamHide)
+		this->redrawHide();
+	else if (!this->checkVersion())
+		this->redrawWhole();
+
+	return FFrame::swsVideoFrame(swsCtx, sh, std::move(yuvFrame));
+}
+
+void VideoFrameSuperPosed::addStreamFrame(const VideoStreamPtr& spStream, const FrameSPtr& spFrame)
+{
+	if (spStream && spFrame)
+	{
+		m_hashStreamFrame.insert(spStream, spFrame);
+		connect(spStream.get(), &IVideoStream::streamWillAdjustThis,
+			this, &VideoFrameSuperPosed::hideStreamFrame, Qt::DirectConnection);
+		connect(spStream.get(), &IVideoStream::StreamAdjustWillFinished,
+			this, &VideoFrameSuperPosed::cancelHidden, Qt::DirectConnection);
+	}
+}
+
+void VideoFrameSuperPosed::hideStreamFrame(IVideoStream* pStream)
+{
+	if (pStream && m_hashStreamFrame.contains(pStream->getSharedPointer()))
+	{
+		m_pStreamHide = pStream;
+	}
+}
+
+void VideoFrameSuperPosed::cancelHidden()
+{
+	if (m_pStreamHide)
+	{
+		m_pStreamHide = nullptr;
+	}
+}
+
+void VideoFrameSuperPosed::onStreamRemoved(VideoStreamPtr spStream)
+{
+	if (m_hashStreamFrame.contains(spStream))
+	{
+		m_hashStreamFrame.remove(spStream);
+		m_hashDrawnVersion.remove(spStream);
+	}
+}
+
+void VideoFrameSuperPosed::redrawWhole()
+{
+	//auto msBegin = QDateTime::currentMSecsSinceEpoch();
+	this->fillColor(m_clrFill);
+	//auto msEnd = QDateTime::currentMSecsSinceEpoch();
+	//qDebug() << "色彩填充耗时" << (msEnd - msBegin);
+
+	//msBegin = QDateTime::currentMSecsSinceEpoch();
+	auto srtStreams = this->sortStreamLevel();
+	//msEnd = QDateTime::currentMSecsSinceEpoch();
+	//qDebug() << "排序耗时" << (msEnd - msBegin);
+	for (const auto& spStream : srtStreams)
+	{
+		if (!spStream->removed())
+		{
+			auto spFrame = m_hashStreamFrame[spStream];
+			spFrame = spStream->swsObjFrame(spFrame);
+			this->drawFrom(std::move(spFrame), spStream->xPos(), spStream->yPos());
+			m_hashDrawnVersion[spStream] = spStream->version();
+		}
+	}
+	m_drawnByHide = false;
+}
+
+void VideoFrameSuperPosed::redrawHide()
+{
+	this->fillColor(m_clrFill);
+
+	auto srtStreams = this->sortStreamLevel();
+	VideoStreamPtr spHideStream;
+	for (const auto& spStream : srtStreams)
+	{
+		if (spStream.get() != m_pStreamHide)
+		{
+			if (!spStream->removed())
+			{
+				auto spFrame = m_hashStreamFrame[spStream];
+				spStream->swsObjFrame(spFrame);
+				this->drawFrom(std::move(spFrame), spStream->xPos(), spStream->yPos());
+				m_hashDrawnVersion[spStream] = spStream->version();
+			}
+		}
+		else
+		{
+			spHideStream = spStream;
+		}
+	}
+
+	if (spHideStream)
+	{
+		m_pStreamHide->widgetShowStreamFrame(m_hashStreamFrame[spHideStream]);
+	}
+	m_drawnByHide = true;
+}
+
+QList<VideoStreamPtr> VideoFrameSuperPosed::sortStreamLevel()
+{
+	std::function<bool(VideoStreamPtr, VideoStreamPtr)> compStream =
+		[](VideoStreamPtr spStream1, VideoStreamPtr spStream2)
+	{
+		if (!spStream1)
+			return true;
+		if (!spStream2)
+			return false;
+		return spStream1->level() < spStream2->level();
+	};
+
+	auto srtStreams = m_hashStreamFrame.keys();
+	std::sort(srtStreams.begin(), srtStreams.end(), compStream);
+	return srtStreams;
+}
+
+bool VideoFrameSuperPosed::checkVersion()const
+{
+	for (auto& spStream : m_hashDrawnVersion.keys())
+	{
+		if (spStream->version() != m_hashDrawnVersion[spStream])
+			return false;
+	}
+	return true;
+}
+
+FrameSafeUtils& FrameSafeUtils::getInstance()
+{
+	static FrameSafeUtils ls_instance;
+	return ls_instance;
 }
 
 VideoFrameProcesser::VideoFrameProcesser(const FAVInfo* pInfo)
@@ -281,11 +879,14 @@ VideoFrameProcesser::VideoFrameProcesser(const FAVInfo* pInfo)
 
 void VideoFrameProcesser::processFrame(FrameSPtr spf)
 {
-	if (m_pSwsCtx == nullptr || !spf || spf.get() == m_spLastFrame.get())
+	if (m_pSwsCtx == nullptr || !spf)
 	{
 		return;
 	}
 	spf->swsVideoFrame(m_pSwsCtx, m_objHeight, m_spYuvFrame);
+	//m_spYuvFrame->outPutImage(0, 120);
+	//m_spYuvFrame->outPutImage(1, 120);
+	//m_spYuvFrame->outPutImage(2, 120);
 	m_spLastFrame = spf;
 	m_frameDecoded = true;
 }

@@ -5,7 +5,7 @@
 #include <QPainter>
 
 VolumeWidget::VolumeWidget(FAVPlayer* player, QWidget* p)
-	: QWidget(p), m_spVolProc(std::make_shared<VolumnAdjustProcessor>(this))
+	: QWidget(p), m_spVolProc(std::make_shared<VolumnAdjustProcessor>())
 {
 	ui.setupUi(this);
 
@@ -19,6 +19,13 @@ VolumeWidget::VolumeWidget(FAVPlayer* player, QWidget* p)
 	this->setStyleSheet("background-color: #050505;color: white;");
 
 	qApp->installEventFilter(this);
+}
+
+VolumeWidget::~VolumeWidget()
+{
+	qDebug() << "音量窗口析构！";
+	qApp->removeEventFilter(this);
+	this->setParent(nullptr);
 }
 
 void VolumeWidget::setRelatedWidget(QWidget* pw)

@@ -21,8 +21,8 @@ QT_BEGIN_MOC_NAMESPACE
 QT_WARNING_PUSH
 QT_WARNING_DISABLE_DEPRECATED
 struct qt_meta_stringdata_PlayBtmBar_t {
-    QByteArrayData data[18];
-    char stringdata0[210];
+    QByteArrayData data[20];
+    char stringdata0[230];
 };
 #define QT_MOC_LITERAL(idx, ofs, len) \
     Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
@@ -44,19 +44,22 @@ QT_MOC_LITERAL(9, 97, 11), // "onEventType"
 QT_MOC_LITERAL(10, 109, 12), // "QEvent::Type"
 QT_MOC_LITERAL(11, 122, 12), // "onFullScreen"
 QT_MOC_LITERAL(12, 135, 18), // "onPlayPauseClicked"
-QT_MOC_LITERAL(13, 154, 10), // "paintEvent"
-QT_MOC_LITERAL(14, 165, 12), // "QPaintEvent*"
-QT_MOC_LITERAL(15, 178, 5), // "event"
-QT_MOC_LITERAL(16, 184, 12), // "onVolClicked"
-QT_MOC_LITERAL(17, 197, 12) // "onVolChanged"
+QT_MOC_LITERAL(13, 154, 10), // "onSeekAble"
+QT_MOC_LITERAL(14, 165, 8), // "seekAble"
+QT_MOC_LITERAL(15, 174, 10), // "paintEvent"
+QT_MOC_LITERAL(16, 185, 12), // "QPaintEvent*"
+QT_MOC_LITERAL(17, 198, 5), // "event"
+QT_MOC_LITERAL(18, 204, 12), // "onVolClicked"
+QT_MOC_LITERAL(19, 217, 12) // "onVolChanged"
 
     },
     "PlayBtmBar\0playClicked\0\0pauseClicked\0"
     "lastClicked\0nextClicked\0fullClicked\0"
     "setClicked\0setPlayState\0onEventType\0"
     "QEvent::Type\0onFullScreen\0onPlayPauseClicked\0"
-    "paintEvent\0QPaintEvent*\0event\0"
-    "onVolClicked\0onVolChanged"
+    "onSeekAble\0seekAble\0paintEvent\0"
+    "QPaintEvent*\0event\0onVolClicked\0"
+    "onVolChanged"
 };
 #undef QT_MOC_LITERAL
 
@@ -66,7 +69,7 @@ static const uint qt_meta_data_PlayBtmBar[] = {
        7,       // revision
        0,       // classname
        0,    0, // classinfo
-      13,   14, // methods
+      14,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
@@ -74,21 +77,22 @@ static const uint qt_meta_data_PlayBtmBar[] = {
        6,       // signalCount
 
  // signals: name, argc, parameters, tag, flags
-       1,    0,   79,    2, 0x06 /* Public */,
-       3,    0,   80,    2, 0x06 /* Public */,
-       4,    0,   81,    2, 0x06 /* Public */,
-       5,    0,   82,    2, 0x06 /* Public */,
-       6,    0,   83,    2, 0x06 /* Public */,
-       7,    0,   84,    2, 0x06 /* Public */,
+       1,    0,   84,    2, 0x06 /* Public */,
+       3,    0,   85,    2, 0x06 /* Public */,
+       4,    0,   86,    2, 0x06 /* Public */,
+       5,    0,   87,    2, 0x06 /* Public */,
+       6,    0,   88,    2, 0x06 /* Public */,
+       7,    0,   89,    2, 0x06 /* Public */,
 
  // slots: name, argc, parameters, tag, flags
-       8,    1,   85,    2, 0x0a /* Public */,
-       9,    1,   88,    2, 0x0a /* Public */,
-      11,    0,   91,    2, 0x0a /* Public */,
-      12,    0,   92,    2, 0x0a /* Public */,
-      13,    1,   93,    2, 0x09 /* Protected */,
-      16,    0,   96,    2, 0x09 /* Protected */,
-      17,    1,   97,    2, 0x09 /* Protected */,
+       8,    1,   90,    2, 0x0a /* Public */,
+       9,    1,   93,    2, 0x0a /* Public */,
+      11,    0,   96,    2, 0x0a /* Public */,
+      12,    0,   97,    2, 0x0a /* Public */,
+      13,    1,   98,    2, 0x0a /* Public */,
+      15,    1,  101,    2, 0x09 /* Protected */,
+      18,    0,  104,    2, 0x09 /* Protected */,
+      19,    1,  105,    2, 0x09 /* Protected */,
 
  // signals: parameters
     QMetaType::Void,
@@ -103,7 +107,8 @@ static const uint qt_meta_data_PlayBtmBar[] = {
     QMetaType::Void, 0x80000000 | 10,    2,
     QMetaType::Void,
     QMetaType::Void,
-    QMetaType::Void, 0x80000000 | 14,   15,
+    QMetaType::Void, QMetaType::Bool,   14,
+    QMetaType::Void, 0x80000000 | 16,   17,
     QMetaType::Void,
     QMetaType::Void, QMetaType::Int,    2,
 
@@ -126,9 +131,10 @@ void PlayBtmBar::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, 
         case 7: _t->onEventType((*reinterpret_cast< QEvent::Type(*)>(_a[1]))); break;
         case 8: _t->onFullScreen(); break;
         case 9: _t->onPlayPauseClicked(); break;
-        case 10: _t->paintEvent((*reinterpret_cast< QPaintEvent*(*)>(_a[1]))); break;
-        case 11: _t->onVolClicked(); break;
-        case 12: _t->onVolChanged((*reinterpret_cast< int(*)>(_a[1]))); break;
+        case 10: _t->onSeekAble((*reinterpret_cast< bool(*)>(_a[1]))); break;
+        case 11: _t->paintEvent((*reinterpret_cast< QPaintEvent*(*)>(_a[1]))); break;
+        case 12: _t->onVolClicked(); break;
+        case 13: _t->onVolChanged((*reinterpret_cast< int(*)>(_a[1]))); break;
         default: ;
         }
     } else if (_c == QMetaObject::IndexOfMethod) {
@@ -203,13 +209,13 @@ int PlayBtmBar::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 13)
+        if (_id < 14)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 13;
+        _id -= 14;
     } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 13)
+        if (_id < 14)
             *reinterpret_cast<int*>(_a[0]) = -1;
-        _id -= 13;
+        _id -= 14;
     }
     return _id;
 }

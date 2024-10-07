@@ -103,6 +103,36 @@
     <ClCompile Include="dlgvideoparam.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="aveditwidget.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="tableresource.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="streamreaders.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="streamwidgets.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="streamutils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="tablestreams.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="streamtimewidget.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="threadpool_imp2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dlgaveditoutput.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="avfilewriter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="avoperator.h">
@@ -147,6 +177,33 @@
     <QtMoc Include="avreader.h">
       <Filter>Header Files</Filter>
     </QtMoc>
+    <QtMoc Include="aveditwidget.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="tableresource.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="tablestreams.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="streamwidgets.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="streamutils.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="streamtimewidget.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="avutils.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="dlgaveditoutput.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="avfilewriter.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <QtUic Include="playbtmbar.ui">
@@ -158,12 +215,18 @@
     <QtUic Include="dlgvideoparam.ui">
       <Filter>Form Files</Filter>
     </QtUic>
+    <QtUic Include="aveditwidget.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="streamtimewidget.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="dlgaveditoutput.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="str_utils.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="avutils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="avtemplates.h">
@@ -182,6 +245,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="threadpool.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="streamreaders.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="global.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="streamparamwidgets.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

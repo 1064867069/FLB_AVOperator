@@ -3,9 +3,11 @@
 
 #include "avutils.h"
 #include "avtemplates.h"
+#include "threadpool.h"
 
 #include <array>
 #include <QDebug>
+#include <QDateTime>
 
 namespace video
 {
@@ -31,6 +33,10 @@ namespace video
 		virtual int getVal(uint8_t*) = 0;
 
 		virtual void setVal(uint8_t*, int val) = 0;
+
+		virtual void coverYUV(AVFrame* pFrame, int y, int u, int v) = 0;
+
+		virtual void coverFrame(AVFrame* dstFrame, AVFrame* srcFrame, int x, int y) = 0;
 
 		virtual SingleDataFunc AddDecPerFunc(int low, int high, float brtCoe) = 0;
 
@@ -59,6 +65,128 @@ namespace video
 		virtual void setVal(uint8_t* data, int val)override
 		{
 			*reinterpret_cast<T*>(data) = static_cast<T>(val);
+		}
+
+		virtual void coverYUV(AVFrame* pFrame, int y, int u, int v)override
+		{
+			if (pFrame == nullptr)
+				return;
+
+			auto data = reinterpret_cast<T**>(pFrame->data);
+			const AVPixFmtDescriptor* desc = av_pix_fmt_desc_get(static_cast<AVPixelFormat>(pFrame->format));
+			if (!desc || desc->nb_components <= 0) {
+				return;
+			}
+
+			auto fillFunc = [data, pFrame, this](int val, int ch, int width, int height)
+			{
+				for (int j = 0; j < width; ++j)
+					data[ch][j] = val;
+
+				int line_sz = pFrame->linesize[ch] / this->perSize();
+				int cur = line_sz;
+				int line_width = width * this->perSize();
+				for (int i = 1; i < height; ++i)
+				{
+					memcpy(data[ch] + cur, data[ch], line_width);
+					cur += line_sz;
+				}
+			};
+
+			/*int rh = 0, cur = 0;
+			for (int i = 0; i < pFrame->height; ++i)
+			{
+				cur = rh;
+				for (int j = 0; j < pFrame->width; ++j)
+					data[0][cur++] = y;
+
+				rh += pFrame->linesize[0];
+			}*/
+			fillFunc(y, 0, pFrame->width, pFrame->height);
+
+			int height2 = (pFrame->height >> desc->log2_chroma_h);
+			int width2 = (pFrame->width >> desc->log2_chroma_w);
+			/*rh = 0;
+			for (int i = 0; i < height2; ++i)
+			{
+				cur = rh;
+				for (int j = 0; j < width2; ++j)
+				{
+					data[1][cur] = u;
+					data[2][cur++] = v;
+				}
+
+				rh += pFrame->linesize[1];
+			}*/
+			fillFunc(u, 1, width2, height2);
+			fillFunc(v, 2, width2, height2);
+		}
+
+		virtual void coverFrame(AVFrame* dstFrame, AVFrame* srcFrame, int x, int y)override
+		{
+			if (dstFrame == nullptr || srcFrame == nullptr || dstFrame->format != srcFrame->format)
+				return;
+			if (x >= dstFrame->width || y >= dstFrame->height)
+				return;
+
+			const AVPixFmtDescriptor* desc = av_pix_fmt_desc_get(static_cast<AVPixelFormat>(dstFrame->format));
+			if (dstFrame->format != srcFrame->format || !desc || desc->nb_components <= 0) {
+				return;
+			}
+
+			//auto msBegin = QDateTime::currentMSecsSinceEpoch();
+			x = std::max(0, x);
+			y = std::max(0, y);
+			auto srcData = reinterpret_cast<T**>(srcFrame->data), dstData = reinterpret_cast<T**>(dstFrame->data);
+			auto cvrFunc = [=](int hm, int wm, int chIndex)
+			{
+				//hep = std::min(1.0f, hep);
+				//hsp = std::max(0.0f, hsp);
+				//int rowh1 = x >> wm,
+				//	rowh2 = (std::abs(std::min(0, y)) >> hm)* srcFrame->linesize[chIndex] / this->perSize();
+				int srcXBegin = std::abs(std::min(0, x)) >> wm, dstXBegin = std::max(0, x) >> wm;
+				int srcYBegin = std::abs(std::min(0, x)) >> hm, dstYBegin = std::max(0, y) >> hm;
+				int rowh1 = dstXBegin + dstYBegin * dstFrame->linesize[chIndex] / this->perSize();
+				int rowh2 = srcXBegin + srcYBegin * srcFrame->linesize[chIndex] / this->perSize();
+				int h1 = dstFrame->height >> hm, h2 = srcFrame->height >> hm;
+				int w1 = dstFrame->width >> wm, w2 = srcFrame->width >> wm;
+				int cpy_size = std::min(w1 - dstXBegin, w2 - srcXBegin) * this->perSize();
+				/*int realH = std::min(h1 - dstYBegin, h2 - srcYBegin);
+				int sgp = realH * hsp, egp = realH * hep;
+				cpy_size = std::max(0, cpy_size);
+				h1 = dstYBegin + egp;
+				h2 = srcYBegin + egp;
+				dstYBegin += sgp;
+				srcYBegin += sgp;*/
+
+				for (int i = dstYBegin, i2 = srcYBegin; i < h1 && i2 < h2; ++i, ++i2)
+				{
+					/*int cur1 = rowh1, cur2 = rowh2;
+					for (int j = dstXBegin, j2 = srcXBegin; j < w1 && j2 < w2; ++j, ++j2)
+					{
+						dstData[chIndex][cur1++] = srcData[chIndex][cur2++];
+					}*/
+					memcpy(&dstData[chIndex][rowh1], &srcData[chIndex][rowh2], cpy_size);
+					//qDebug() << dstFrame->linesize[chIndex];
+					rowh1 += dstFrame->linesize[chIndex] / this->perSize();
+					rowh2 += srcFrame->linesize[chIndex] / this->perSize();
+				}
+			};
+
+			//auto f1 = ThreadPool::getInstance().enqueue(cvrFunc, 0, 0, 0, 0.0f, 0.25f);
+			//auto f2 = ThreadPool::getInstance().enqueue(cvrFunc, 0, 0, 0, 0.25f, 0.5f);
+			//auto f3 = ThreadPool::getInstance().enqueue(cvrFunc, 0, 0, 0, 0.5f, 0.75f);
+			//auto f4 = ThreadPool::getInstance().enqueue(cvrFunc, 0, 0, 0, 0.75f, 1.0f);
+			cvrFunc(0, 0, 0);
+			cvrFunc(desc->log2_chroma_h, desc->log2_chroma_w, 1);
+			cvrFunc(desc->log2_chroma_h, desc->log2_chroma_w, 2);
+
+			//f1.get();
+			//f2.get();
+			//f3.get();
+			//f4.get();
+			//auto msEnd = QDateTime::currentMSecsSinceEpoch();
+			//qDebug() << "一次画帧耗时" << (msEnd - msBegin);
 		}
 
 		virtual SingleDataFunc AddDecPerFunc(int low, int high, float brtCoe)override {

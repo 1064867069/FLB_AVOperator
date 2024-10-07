@@ -1,10 +1,17 @@
 #include "avoperator.h"
 #include "avreader.h"
 
+#include <QDebug>
+
 FAVFrameBuffer::FAVFrameBuffer(size_t cap) :m_limCapacity(cap)
 {
 	if (m_limCapacity < 10)
 		m_limCapacity = 10;
+}
+
+float FAVFrameBuffer::fullProp()const
+{
+	return static_cast<float>(m_bufferFrames.size()) / m_limCapacity;
 }
 
 bool FAVFrameBuffer::isBeyond()const
@@ -35,7 +42,6 @@ void FAVFrameBuffer::pushFrame(const FrameSPtr& sp)
 	{
 		QMutexLocker locker(&m_mutex);
 		m_bufferFrames.append(sp);
-
 		/*while (m_bufferFrames.size() > m_limCapacity * 2)
 		{
 			m_bufferFrames.pop_front();
@@ -76,6 +82,11 @@ FrameSPtr FAVFrameBuffer::popFrame()
 	auto res = m_bufferFrames.front();
 	m_bufferFrames.pop_front();
 	return res;
+}
+
+FrameSPtr FAVFrameBuffer::frontFrame()const
+{
+	return m_bufferFrames.size() == 0 ? nullptr : m_bufferFrames.front();
 }
 
 void FAVFrameBuffer::clear()

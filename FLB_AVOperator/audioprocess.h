@@ -47,10 +47,9 @@ class VolumnAdjustProcessor :public IAudioFrameProcessor
 public:
 	explicit VolumnAdjustProcessor(QObject* p = nullptr);
 
-
-
 	virtual FrameSPtr processFrame(FrameSPtr)Q_DECL_OVERRIDE;
 
+	double factor()const;
 public slots:
 	void onVolChanged(int);
 private:
@@ -106,6 +105,35 @@ private:
 	int m_numOutSample = 0;
 	int64_t m_lastEndPts = AV_NOPTS_VALUE;
 	int64_t m_duration = AV_NOPTS_VALUE;
+};
+
+class AudioResampleProcessor :public IAudioFrameProcessor
+{
+	Q_OBJECT
+public:
+	AudioResampleProcessor(int src_rate, AVSampleFormat srcFmt, AVChannelLayout src_channel,
+		int dst_rate, AVSampleFormat dstFmt, AVChannelLayout dst_channel);
+
+	virtual ~AudioResampleProcessor()Q_DECL_OVERRIDE;
+
+	virtual FrameSPtr processFrame(FrameSPtr)Q_DECL_OVERRIDE;
+
+	void resetOutParam(int newOutRate, AVSampleFormat dstFmt, AVChannelLayout dst_channel);
+
+	AVSampleFormat getInputSampleFormat()const;
+
+	int getInputSampleRate()const;
+
+	AVChannelLayout getChannelLayoout()const;
+private:
+	SwrContext* m_pSwrCtx = nullptr;
+
+	AVSampleFormat m_inFormat;
+	AVSampleFormat m_outFormat;
+	AVChannelLayout m_inChannels;
+	AVChannelLayout m_outChannels;
+	int m_inSample;
+	int m_outSample;
 };
 
 #endif // !AUDIOPROCESS_H

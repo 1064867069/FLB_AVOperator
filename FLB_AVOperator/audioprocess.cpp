@@ -101,6 +101,11 @@ FrameSPtr VolumnAdjustProcessor::processFrame(FrameSPtr pf)
 	return result;
 }
 
+double VolumnAdjustProcessor::factor()const
+{
+	return m_factor;
+}
+
 void VolumnAdjustProcessor::onVolChanged(int v)
 {
 	m_factor = static_cast<double>(v) / 100;
@@ -380,3 +385,104 @@ FrameSPtr AudioSpeedProcessor::forcePopOutBuffer()
 
 	return res;
 }
+
+AudioResampleProcessor::AudioResampleProcessor(int src_rate, AVSampleFormat srcFmt, AVChannelLayout src_channel,
+	int dst_rate, AVSampleFormat dstFmt, AVChannelLayout dst_channel) :
+	m_inFormat(srcFmt), m_outFormat(dstFmt), m_inChannels(src_channel), m_inSample(src_rate), m_outSample(dst_rate)
+{
+	if (srcFmt == dstFmt && src_rate == dst_rate)
+		return;
+
+	this->resetOutParam(dst_rate, dstFmt, dst_channel);
+}
+
+AudioResampleProcessor::~AudioResampleProcessor()
+{
+	swr_free(&m_pSwrCtx);
+}
+
+void AudioResampleProcessor::resetOutParam(int newOutRate, AVSampleFormat dstFmt, AVChannelLayout dst_channel)
+{
+	m_outSample = newOutRate;
+	m_outFormat = dstFmt;
+	m_outChannels = dst_channel;
+
+	swr_free(&m_pSwrCtx);
+	SwrContext* swr_ctx = swr_alloc();
+	// 设置输入和输出的音频参数
+	int ret = swr_alloc_set_opts2(&swr_ctx, // 音频采样器的实例
+		&m_outChannels, // 输出的声道布局
+		m_outFormat, // 输出的采样格式
+		m_outSample, // 输出的采样频率
+		&m_inChannels, // 输入的声道布局
+		m_inFormat, // 输入的采样格式
+		m_inSample, // 输入的采样频率
+		0, nullptr);
+
+	// 初始化 SwrContext
+	if (ret < 0 || swr_init(swr_ctx) < 0) {
+		swr_free(&swr_ctx);
+	}
+	else
+	{
+		m_pSwrCtx = swr_ctx;
+	}
+}
+
+AVSampleFormat AudioResampleProcessor::getInputSampleFormat()const
+{
+	return m_inFormat;
+}
+
+int AudioResampleProcessor::getInputSampleRate()const
+{
+	return m_inSample;
+}
+
+AVChannelLayout AudioResampleProcessor::getChannelLayoout()const
+{
+	return m_inChannels;
+}
+
+FrameSPtr AudioResampleProcessor::processFrame(FrameSPtr spf)
+{
+	if (m_pSwrCtx == nullptr || !spf)
+		return spf;
+
+	FrameSPtr res = std::make_shared<FFrame>();
+	auto srcFrame = spf->getAVFrame();
+	auto outFrame = IAudioFrameProcessor::getAVFrame(res.get());
+
+	// 准备输出缓冲区
+	int out_samples = av_rescale_rnd(swr_get_delay(m_pSwrCtx, srcFrame->sample_rate) + srcFrame->nb_samples,
+		m_outSample, srcFrame->sample_rate, AV_ROUND_UP);
+
+	// 分配输出缓冲区空间
+	outFrame->nb_samples = out_samples;
+	outFrame->ch_layout = m_outChannels;
+	outFrame->channels = m_outChannels.nb_channels;
+	outFrame->format = m_outFormat;
+	outFrame->sample_rate = m_outSample;
+	outFrame->time_base = srcFrame->time_base;
+	outFrame->pts = srcFrame->pts;
+
+	// 为输出帧分配缓冲区
+	av_frame_get_buffer(outFrame, 0);
+
+	// 重采样
+	/*int ret = swr_convert(m_swrCtx, outFrame->data, outFrame->nb_samples,
+		(const uint8_t**)srcFrame->data, srcFrame->nb_samples);*/
+
+	int ret = spf->swrFrame(m_pSwrCtx, outFrame, out_samples);
+	if (ret >= 0)
+	{
+		setFrameValid(res.get());
+		outFrame->nb_samples = ret;
+	}
+	/*qDebug() << "原帧";
+	spf->outPutSample();
+	qDebug() << "新帧";
+	res->outPutSample();*/
+	return ret < 0 ? spf : res;
+}
+

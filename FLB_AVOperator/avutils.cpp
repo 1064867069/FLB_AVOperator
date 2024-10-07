@@ -91,6 +91,31 @@ namespace audio
 
 		return SpeedFunc();
 	}
+
+	QList<AVSampleFormat> getSupportedSampleFormats(const AVCodec* pCodec)
+	{
+		QList<AVSampleFormat> fmts;
+		if (!pCodec)
+			return fmts;
+
+		const enum AVSampleFormat* p = pCodec->sample_fmts;
+		while (*p != AV_SAMPLE_FMT_NONE) {
+			fmts.append(*p);
+			p++;
+		}
+		return fmts;
+	}
+
+	AVCodecID getAudioCodecID(const QString& suffix)
+	{
+		auto lowSuffix = suffix.toLower();
+		if (suffix == "mp4" || suffix == "m4a")
+			return AV_CODEC_ID_AAC;
+		else if (suffix == "mp3")
+			return AV_CODEC_ID_MP3;
+
+		return AV_CODEC_ID_NONE;
+	}
 }
 
 namespace video
@@ -140,9 +165,17 @@ namespace video
 			return false;
 		}
 
+		for (int i = 0; i < 4; ++i)
+		{
+			int sz = linesizes[i];
+			if (sz % 8 > 0)
+				sz = ((sz >> 3) << 3) + 8;
+			linesizes[i] = sz;
+		}
+
 		auto vm = IVideoManager::getManagerByDepth(desc->comp[0].depth);
 		int sizePerComp = linesizes[0] * h, allSize = sizePerComp;
-		int uvw = (w >> desc->log2_chroma_w), uvh = (h >> desc->log2_chroma_h);
+		int uvw = (w >> desc->log2_chroma_w) + w % 2, uvh = (h >> desc->log2_chroma_h) + h % 2;
 		std::array<int, 4> szArr = { 0 };
 
 		szArr[0] = sizePerComp;
@@ -177,6 +210,7 @@ namespace video
 			cur += szArr[i];
 		}
 
+		//qDebug() << res << "尝试分配大小" << allSize << linesizes[0] << linesizes[1] << linesizes[2];
 		m_hashPointerSize[res] = allSize;
 		return true;
 	}
@@ -186,8 +220,10 @@ namespace video
 		QMutexLocker locker(&m_mutex);
 		if (m_hashPointerSize.find(p) != m_hashPointerSize.end())
 		{
+			//qDebug() << p << "尝试释放大小" << m_hashPointerSize[p];
 			m_allocator.deallocate(p, m_hashPointerSize[p]);
 			m_hashPointerSize.remove(p);
 		}
+
 	}
 }

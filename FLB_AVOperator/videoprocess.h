@@ -11,6 +11,8 @@ public:
 
 	virtual FrameSPtr processFrame(FrameSPtr)Q_DECL_OVERRIDE;
 
+	virtual bool skip()const Q_DECL_OVERRIDE;
+
 	void addVProcessor(const VProcessSPtr&);
 
 private:
@@ -24,6 +26,7 @@ public:
 
 	virtual FrameSPtr processFrame(FrameSPtr)Q_DECL_OVERRIDE;
 
+	virtual bool skip()const Q_DECL_OVERRIDE;
 public slots:
 	void setBright(int);
 
@@ -38,6 +41,7 @@ public:
 
 	virtual FrameSPtr processFrame(FrameSPtr)Q_DECL_OVERRIDE;
 
+	virtual bool skip()const Q_DECL_OVERRIDE;
 public slots:
 	void setChrom(int);
 
@@ -52,6 +56,7 @@ public:
 
 	virtual FrameSPtr processFrame(FrameSPtr)Q_DECL_OVERRIDE;
 
+	virtual bool skip()const Q_DECL_OVERRIDE;
 public slots:
 	void setContrast(int);
 
@@ -67,6 +72,7 @@ public:
 
 	virtual FrameSPtr processFrame(FrameSPtr)Q_DECL_OVERRIDE;
 
+	virtual bool skip()const Q_DECL_OVERRIDE;
 public slots:
 	void setClrTemp(int);
 

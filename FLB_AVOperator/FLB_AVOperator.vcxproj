@@ -62,7 +62,7 @@
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>x264\lib;sdl2\lib;lame\lib;ffmpeg\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>x264\lib\*.lib;sdl2\lib\*.lib;lame\lib\*.lib;ffmpeg\lib\*.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>x264\lib\*.lib;lame\lib\*.lib;sdl2\lib\*.lib;ffmpeg\lib\*.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'" Label="Configuration">
@@ -94,16 +94,26 @@
   <ItemGroup>
     <ClCompile Include="audioprocess.cpp" />
     <ClCompile Include="audiosdlplayer.cpp" />
+    <ClCompile Include="aveditwidget.cpp" />
     <ClCompile Include="avfilemanager.cpp" />
+    <ClCompile Include="avfilewriter.cpp" />
     <ClCompile Include="avplayer.cpp" />
     <ClCompile Include="avutils.cpp" />
+    <ClCompile Include="dlgaveditoutput.cpp" />
     <ClCompile Include="dlgvideoparam.cpp" />
     <ClCompile Include="interfaces.cpp" />
     <ClCompile Include="playbtmbar.cpp" />
     <ClCompile Include="playlistwidget.cpp" />
     <ClCompile Include="playtable.cpp" />
     <ClCompile Include="speedcmbbox.cpp" />
+    <ClCompile Include="streamtimewidget.cpp" />
+    <ClCompile Include="streamutils.cpp" />
+    <ClCompile Include="streamreaders.cpp" />
+    <ClCompile Include="streamwidgets.cpp" />
     <ClCompile Include="str_utils.cpp" />
+    <ClCompile Include="tableresource.cpp" />
+    <ClCompile Include="tablestreams.cpp" />
+    <ClCompile Include="threadpool_imp2.cpp" />
     <ClCompile Include="timeobservers.cpp" />
     <ClCompile Include="uicomponents.cpp" />
     <ClCompile Include="videoopenglplayer.cpp" />
@@ -111,6 +121,8 @@
     <ClCompile Include="volumewidget.cpp" />
     <QtRcc Include="flb_avoperator.qrc" />
     <QtRcc Include="playbtm.qrc" />
+    <QtUic Include="aveditwidget.ui" />
+    <QtUic Include="dlgaveditoutput.ui" />
     <QtUic Include="dlgvideoparam.ui" />
     <QtUic Include="flb_avoperator.ui" />
     <QtMoc Include="flb_avoperator.h" />
@@ -120,6 +132,7 @@
     <ClCompile Include="flb_avoperator.cpp" />
     <ClCompile Include="main.cpp" />
     <QtUic Include="playbtmbar.ui" />
+    <QtUic Include="streamtimewidget.ui" />
     <QtUic Include="volumewidget.ui" />
   </ItemGroup>
   <ItemGroup>
@@ -143,6 +156,17 @@
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="avreader.h" />
+    <QtMoc Include="aveditwidget.h" />
+    <QtMoc Include="tableresource.h" />
+    <QtMoc Include="tablestreams.h" />
+    <QtMoc Include="dlgaveditoutput.h" />
+    <QtMoc Include="avfilewriter.h" />
+    <ClInclude Include="global.h" />
+    <QtMoc Include="streamutils.h" />
+    <ClInclude Include="streamparamwidgets.h" />
+    <ClInclude Include="streamreaders.h" />
+    <QtMoc Include="streamwidgets.h" />
+    <QtMoc Include="streamtimewidget.h" />
     <ClInclude Include="threadpool.h" />
     <ClInclude Include="videomanager.h" />
     <ClInclude Include="videoprocess.h" />
@@ -153,7 +177,7 @@
     <ClInclude Include="audiomanager.h" />
     <ClInclude Include="audiospeed.h" />
     <ClInclude Include="avtemplates.h" />
-    <ClInclude Include="avutils.h" />
+    <QtMoc Include="avutils.h" />
     <QtMoc Include="speedcmbbox.h" />
     <QtMoc Include="dlgvideoparam.h" />
     <ClInclude Include="str_utils.h" />

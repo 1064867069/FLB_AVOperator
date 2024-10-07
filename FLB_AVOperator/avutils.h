@@ -7,6 +7,9 @@
 #include <QMutex>
 #include <QHash>
 #include <array>
+#include <vector>
+
+#include "interfaces.h"
 
 extern "C"
 {
@@ -16,7 +19,13 @@ extern "C"
 #include <libavutil/imgutils.h>
 #include <libswscale/swscale.h>
 #include <libswresample/swresample.h>
+#include <libavutil/opt.h>
+};
 
+enum class FrameFlag
+{
+	NormalFrame,
+	PadFrame
 };
 
 class IAudioFrameProcessor;
@@ -27,11 +36,15 @@ public:
 
 	FFrame(const FFrame&) = delete;
 
-	~FFrame();
+	FFrame(AVSampleFormat fmt, AVChannelLayout ch_layout, int sample_rate, int nb_samples);
+
+	FFrame(AVPixelFormat fmt, int height, int width, const QString& clr = "#000000");
+
+	virtual ~FFrame();
 
 	std::shared_ptr<FFrame> deepAFClone()const;
 
-	std::shared_ptr<FFrame> deepVFClone()const;
+	virtual std::shared_ptr<FFrame> deepVFClone()const;
 
 	const AVFrame* getAVFrame()const;
 
@@ -39,15 +52,49 @@ public:
 
 	int decode(AVCodecContext*, AVStream*);
 
+	int send2Encoder(AVCodecContext* encCtx);
+
+	void setPts(int64_t pts);
+
+	void setPtsSecond(double sec);
+
+	void setTimeBase(int num, int den);
+
+	void setDuration(int d);
+
+	void copy2AudioBufferPlanar(std::vector<std::vector<uint8_t>>& buffer, double second = -1);
+
+	void fromAudioBufferPlanar(std::vector<std::vector<uint8_t>>& buffer, float factor);
+
+	void drawFrom(FrameSPtr other, int x = 0, int y = 0);
+
+	void outPutSample();
+
+	void outPutImage(int c = 0, int step = 15);
+
+	void setExternInfo(const QString& info);
+
+	void setFlag(FrameFlag flag);
+
+	QImage toQImage()const;
+
+	FrameFlag flag()const;
+
 	bool valid()const;
 
 	bool isAudio()const;
 
 	bool isVideo()const;
 
+	int getSample()const;
+
 	int64_t getPts()const;
 
 	double getSecond()const;
+
+	double getDurationSecond()const;
+
+	double getEndSecond()const;
 
 	AVRational getTimeBase()const;
 
@@ -57,19 +104,84 @@ public:
 
 	int swrFrame(SwrContext* swrCtx, unsigned char* outBuf, int max_size);
 
-	int swsVideoFrame(SwsContext* swsCtx, int sh, std::shared_ptr<FFrame> yuvFrame);
+	int swrFrame(SwrContext* swrCtx, AVFrame* other, int max_size);
+
+	virtual int swsVideoFrame(SwsContext* swsCtx, int sh, std::shared_ptr<FFrame> yuvFrame);
 
 	void imageRelate(uint8_t* buffer, AVPixelFormat format, int w, int h);
-private:
+
+protected:
+	AVFrame* allocVideoFrame(AVPixelFormat fmt, int height, int width);
+
+	void fillColor(const QColor& color);
+protected:
 	AVFrame* m_pFrame;
+	FrameFlag m_flag = FrameFlag::NormalFrame;
 	//int64_t m_pts = AV_NOPTS_VALUE;
 	bool m_valid = false;
 
+	QString m_externInfo;
 	friend class IAudioFrameProcessor;
 	friend class IVideoFrameProcessor;
 };
 using FrameSPtr = std::shared_ptr<FFrame>;
 
+class VideoFrameSuperPosed : public QObject, public FFrame
+{
+	Q_OBJECT
+public:
+	VideoFrameSuperPosed(AVPixelFormat fmt, int height, int width, const QString& clr = "");
+
+	//virtual ~VideoFrameSuperPosed()override;
+
+	virtual std::shared_ptr<FFrame> deepVFClone()const override;
+
+	virtual int swsVideoFrame(SwsContext* swsCtx, int sh, std::shared_ptr<FFrame> yuvFrame)override;
+
+	void addStreamFrame(const VideoStreamPtr& spStream, const FrameSPtr& spFrame);
+
+	void redrawWhole();
+
+	void redrawHide();
+public slots:
+	void hideStreamFrame(IVideoStream* pStream);
+
+	void cancelHidden();
+
+	void onStreamRemoved(VideoStreamPtr spStream);
+
+	QList<VideoStreamPtr> sortStreamLevel();
+
+	bool checkVersion()const;
+private:
+	QHash<VideoStreamPtr, FrameSPtr> m_hashStreamFrame;
+	QHash<VideoStreamPtr, int> m_hashDrawnVersion;
+	IVideoStream* m_pStreamHide = nullptr;
+	QColor m_clrFill;
+	bool m_drawnByHide = false;
+};
+
+
+class FrameSafeUtils
+{
+public:
+	static FrameSafeUtils& getInstance();
+
+	template<class ...Args>
+	FrameSPtr make_shared_frame(Args&&... _args)
+	{
+		QMutexLocker locker(&m_mutex);
+		return std::make_shared<FFrame>(std::forward<Args>(_args)...);
+	}
+
+private:
+	FrameSafeUtils() = default;
+	FrameSafeUtils(const FrameSafeUtils&) = delete;
+	FrameSafeUtils& operator=(const FrameSafeUtils&) = delete;
+
+private:
+	QMutex m_mutex;
+};
 
 class FAVInfo;
 
@@ -105,9 +217,6 @@ struct FAVInfo
 	bool equalAudioInfo(const FAVInfo&)const;
 };
 
-
-
-
 namespace audio {
 
 	class IAudioManager;
@@ -125,6 +234,9 @@ namespace audio {
 	SpeedFunc getSpeedFunc(AVSampleFormat, int, int);
 
 	//int getAudioFrameSize(int aIndex, AVFormatContext* inFmtCtx, AVCodecContext* decCtx);
+	QList<AVSampleFormat> getSupportedSampleFormats(const AVCodec* pCodec);
+
+	AVCodecID getAudioCodecID(const QString& suffix);
 };
 
 namespace video
@@ -175,6 +287,11 @@ namespace video
 		return 240 * ((1 << depth) - 1) / 255;
 	}
 
+	inline int getYUVMid(int depth)
+	{
+		return 1 << (depth - 1);
+	}
+
 	inline std::tuple<int, int, int> getRGB_BT601(int y, int u, int v, int mid)
 	{
 		v -= mid;
@@ -186,20 +303,35 @@ namespace video
 		return std::tuple<int, int, int>(r, g, b);
 	}
 
-	//inline std::tuple<int, int, int> getYUV_BT601_Dep16(int r, int g, int b)
-	//{
-	//	const int y = g_ry[r] + g_gy[g] + g_by[b];
-	//	const int u = static_cast<int>(g_ru[r] + g_gu[g]) + (b >> 1) + 128;
-	//	const int v = (r >> 1) + static_cast<int>(g_gv[g] + g_bv[b]) + 128;
+	inline std::tuple<int, int, int> getRGB_BT601_DV(int y, int u, int v, int depth)
+	{
+		int mid = getYUVMid(depth);
+		v -= mid;
+		u -= mid;
+		y -= getYUVMin(depth);
+		y *= 1.164f;
+		const int r = y + static_cast<int>(y + 1.596f * v);
+		const int g = y - static_cast<int>(y - 0.392f * u - 0.813 * v);
+		const int b = y + static_cast<int>(y + 2.017 * u);
 
-	//	return std::tuple<int, int, int>(y, u, v);
-	//}
+		return std::tuple<int, int, int>(r, g, b);
+	}
 
 	inline std::tuple<int, int, int> getYUV_BT601(int r, int g, int b, int mid)
 	{
-		const int y = 0.299 * r + 0.587 * g + 0.114 * b;
-		const int u = static_cast<int>(-0.169 * r - 0.331 * g) + (b >> 1) + mid;
-		const int v = (r >> 1) - static_cast<int>(0.419 * g + 0.081 * b) + mid;
+		const int y = 0.299f * r + 0.587f * g + 0.114f * b;
+		const int u = static_cast<int>(-0.169f * r - 0.331f * g) + (b >> 1) + mid;
+		const int v = (r >> 1) - static_cast<int>(0.419f * g + 0.081f * b) + mid;
+
+		return std::tuple<int, int, int>(y, u, v);
+	}
+
+	inline std::tuple<int, int, int> getYUV_BT601_DV(int r, int g, int b, int depth)
+	{
+		int mid = getYUVMid(depth);
+		const int y = 0.257f * r + 0.504f * g + 0.098f * b + getYUVMin(depth);
+		const int u = -0.148f * r - 0.291f * g + 0.439f * b + mid;
+		const int v = 0.439f * r - 0.368f * g - 0.071f * b + mid;
 
 		return std::tuple<int, int, int>(y, u, v);
 	}

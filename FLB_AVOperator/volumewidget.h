@@ -11,6 +11,7 @@ class VolumeWidget :public QWidget
 	Q_OBJECT
 public:
 	explicit VolumeWidget(FAVPlayer*, QWidget* p);
+	~VolumeWidget();
 
 	void setRelatedWidget(QWidget*);
 protected slots:
@@ -28,7 +29,6 @@ signals:
 private:
 	std::shared_ptr<VolumnAdjustProcessor> m_spVolProc;
 
-	FAVPlayer* m_pPlayer;
 	QWidget* m_pRelatedWidget = nullptr;
 private:
 	Ui::Form ui;

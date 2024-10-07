@@ -3,8 +3,12 @@
 
 ITimeObserver::ITimeObserver(FAVPlayer* pObj, QObject* par) : QObject(par)
 {
-	connect(pObj, &FAVPlayer::secondChanged, this, &ITimeObserver::onSecondChanged);
-	connect(pObj, &FAVPlayer::durationChanged, this, &ITimeObserver::onDurationChanged);
+	if (pObj)
+	{
+		connect(pObj, &FAVPlayer::secondChanged, this, &ITimeObserver::onSecondChanged);
+		connect(pObj, &FAVPlayer::durationChanged, this, &ITimeObserver::onDurationChanged);
+		m_duration = pObj->getDuration();
+	}
 }
 
 IAudioFrameProcessor::IAudioFrameProcessor(QObject* p) : QObject(p)
@@ -52,6 +56,10 @@ IVideoFrameProcessor::IVideoFrameProcessor(QObject* p) : QObject(p)
 
 }
 
+bool IVideoFrameProcessor::skip()const
+{
+	return true;
+}
 
 void IVideoFrameProcessor::setFrameValid(FFrame* pf)
 {

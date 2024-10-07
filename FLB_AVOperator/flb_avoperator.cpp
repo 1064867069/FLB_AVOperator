@@ -5,6 +5,7 @@
 #include "playtable.h"
 #include "playbtmbar.h"
 #include "avfilemanager.h"
+#include "aveditwidget.h"
 
 #include <QDebug>
 #include <QDateTime>
@@ -12,50 +13,23 @@
 #include <QMessageBox>
 #include <QTabWidget>
 
+
+FLB_AVOperator* FLB_AVOperator::s_pMainWindow = nullptr;
+FLB_AVOperator* FLB_AVOperator::getWindowPtr()
+{
+	return s_pMainWindow;
+}
+
 FLB_AVOperator::FLB_AVOperator(QWidget* parent)
 	: QMainWindow(parent)
 {
 	ui.setupUi(this);
+	this->initWidgets();
 
-	m_pVideoWidget = new VideoOpenGLPlayer(this);
-	this->setCentralWidget(m_pVideoWidget);
-
-	this->setDockPlayList();
-
-	this->setStyleSheet(R"(
-            QMainWindow {
-                background-color: #2E2E2E; /* 深灰色 */
-            })");
-}
-
-
-FLB_AVOperator::~FLB_AVOperator()
-{
-	auto player = m_pVideoWidget->getPlayer();
-	player->stop();
-}
-
-void FLB_AVOperator::setDockPlayList()
-{
-	auto pDock = new QDockWidget("音乐播放列表", this);
-	pDock->setFixedWidth(200);
-	pDock->setFeatures(QDockWidget::NoDockWidgetFeatures);
-
-	pDock->setAllowedAreas(Qt::RightDockWidgetArea);
-	this->addDockWidget(Qt::RightDockWidgetArea, pDock);
-
-
-	m_pTabPlayList = new QTabWidget(pDock);
-	pDock->setWidget(m_pTabPlayList);
-	pDock->setStyleSheet(R"(
-        QDockWidget {
-            background-color: #1D1D1D; /* Dock widget background color */
-			color: white;
-        }
-        
-    )");
-
-	m_pTabPlayList->setStyleSheet(
+	this->setStyleSheet(
+		"QWidget {"
+		"   background-color: #2E2E2E; /* 深灰色 */"
+		"}"
 		"QTabBar::tab { "
 		"background: black; "
 		"color: white; "
@@ -69,6 +43,103 @@ void FLB_AVOperator::setDockPlayList()
 		"background: gray; "
 		"}"
 	);
+
+	s_pMainWindow = this;
+}
+
+
+FLB_AVOperator::~FLB_AVOperator()
+{
+	s_pMainWindow = nullptr;
+	auto player = m_pVideoWidget->getPlayer();
+	player->stop();
+}
+
+void FLB_AVOperator::initWidgets()
+{
+	m_pVideoWidget = new VideoOpenGLPlayer(this);
+
+	this->setDockPlayList();
+
+	m_pEditWidget = new AVEditWidget(this);
+
+	m_pBtnPlayer = new QPushButton("视频播放", this);
+	m_pBtnPlayer->setStyleSheet("QPushButton { background-color: black; color: white; } "
+		"QPushButton:hover { background-color: lightblue; }"
+		"QPushButton:disabled{ "
+		"background-color: black;"  // 禁用状态背景颜色
+		"color: gray;"              // 禁用状态字体颜色
+		"}");
+	m_pBtnEditor = new QPushButton("音视频编辑", this);
+	m_pBtnEditor->setStyleSheet(m_pBtnPlayer->styleSheet());
+	ui.mainToolBar->addWidget(m_pBtnPlayer);
+	ui.mainToolBar->addWidget(m_pBtnEditor);
+	connect(m_pBtnPlayer, &QPushButton::clicked, this, &FLB_AVOperator::onPlayerShow);
+	connect(m_pBtnEditor, &QPushButton::clicked, this, &FLB_AVOperator::onEditorShow);
+
+	this->onPlayerShow();
+}
+
+void FLB_AVOperator::onPlayerShow()
+{
+	m_pEditWidget->hide();
+	m_pEditWidget->setParent(nullptr);
+	m_pVideoWidget->show();
+	this->setCentralWidget(m_pVideoWidget);
+	m_pEditWidget->setParent(this);
+
+	m_pDockPlay->show();
+	m_pBtnPlayer->setEnabled(false);
+	m_pBtnEditor->setEnabled(true);
+}
+
+void FLB_AVOperator::onEditorShow()
+{
+	m_pVideoWidget->hide();
+	m_pVideoWidget->setParent(nullptr);
+	m_pEditWidget->show();
+	this->setCentralWidget(m_pEditWidget);
+	m_pVideoWidget->setParent(this);
+
+	m_pDockPlay->hide();
+	m_pBtnPlayer->setEnabled(true);
+	m_pBtnEditor->setEnabled(false);
+}
+
+void FLB_AVOperator::setDockPlayList()
+{
+	m_pDockPlay = new QDockWidget("音乐播放列表", this);
+	m_pDockPlay->setFixedWidth(200);
+	m_pDockPlay->setFeatures(QDockWidget::NoDockWidgetFeatures);
+
+	m_pDockPlay->setAllowedAreas(Qt::RightDockWidgetArea);
+	this->addDockWidget(Qt::RightDockWidgetArea, m_pDockPlay);
+
+
+	m_pTabPlayList = new QTabWidget(m_pDockPlay);
+	m_pDockPlay->setWidget(m_pTabPlayList);
+	m_pDockPlay->setStyleSheet(R"(
+        QDockWidget {
+            background-color: #1D1D1D; /* Dock widget background color */
+			color: white;
+        }
+        
+    )");
+
+	/*m_pTabPlayList->setStyleSheet(
+		"QTabBar::tab { "
+		"background: black; "
+		"color: white; "
+		"padding: 10px; "
+		"}"
+		"QTabBar::tab:selected { "
+		"background: #1d1d1d; "
+		"color: white; "
+		"}"
+		"QTabBar::tab:hover { "
+		"background: gray; "
+		"}"
+	);*/
 	m_pTabPlayList->setFocusPolicy(Qt::NoFocus);
 
 	m_pLocalPlayList = new PlayListWidget(&AVFileManager::getInstance(), this);

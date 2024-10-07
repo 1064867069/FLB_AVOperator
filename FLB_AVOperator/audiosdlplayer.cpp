@@ -110,10 +110,12 @@ bool AudioSDLPlayer::changeReader(ReaderSPtr sp)
 
 	AVChannelLayout oly = info->m_chLayout;
 	AVSampleFormat out_sample_fmt = AV_SAMPLE_FMT_S16; // 输出的采样格式
+	int out_sample_rate = info->m_sampleRate;
+	//int out_sample_rate = 44100;
 	int ret = swr_alloc_set_opts2(&m_pSwrCtx, // 音频采样器的实例
 		&oly, // 输出的声道布局
 		out_sample_fmt, // 输出的采样格式
-		info->m_sampleRate, // 输出的采样频率
+		out_sample_rate, // 输出的采样频率
 		&oly, // 输入的声道布局
 		info->m_sampleFmt, // 输入的采样格式
 		info->m_sampleRate, // 输入的采样频率
@@ -132,7 +134,8 @@ bool AudioSDLPlayer::changeReader(ReaderSPtr sp)
 
 	m_outBufferSize = av_samples_get_buffer_size(NULL, info->m_nChannel, info->m_frameSize, out_sample_fmt, 1);
 	// 分配输出缓冲区的空间
-	m_pOutBuffer = (unsigned char*)av_malloc(MAX_AUDIO_FRAME_SIZE * info->m_nChannel);
+	if (m_pOutBuffer == nullptr)
+		m_pOutBuffer = (unsigned char*)av_malloc(MAX_AUDIO_FRAME_SIZE * info->m_nChannel);
 	if (m_pOutBuffer == nullptr)
 	{
 		qCritical() << "outbuffer alloc error " << ret << '\n';
@@ -140,7 +143,7 @@ bool AudioSDLPlayer::changeReader(ReaderSPtr sp)
 		return false;
 	}
 
-	m_spec.freq = info->m_sampleRate; // 采样频率
+	m_spec.freq = out_sample_rate; // 采样频率
 	m_spec.format = AUDIO_S16SYS; // 采样格式
 	m_spec.channels = info->m_nChannel; // 声道数量
 	m_spec.silence = 0; // 是否静音
@@ -153,6 +156,7 @@ bool AudioSDLPlayer::changeReader(ReaderSPtr sp)
 		return false;
 	}
 	m_spReader = std::move(sp);
+	m_isPaused = false;
 	SDL_PauseAudio(0); // 播放/暂停音频。参数为0表示播放，为1表示暂停
 	return true;
 }
@@ -248,10 +252,11 @@ void AudioSDLPlayer::fill_audio(void* para, uint8_t* stream, int len)
 	double curSecond = -1, curEnd = -1;
 	while (len > 0 && reader->getInfo()->m_isOpen)
 	{
-		auto frame = reader->popAudioFrame();
+		//qDebug() << "SDL循环！";
+		auto frame = reader->popAudioFrame(); //if (!frame)qDebug() << "SDL:空帧！";
 		if (frame)
 		{
-			//qDebug() << frame->getAVFrame()->pts;
+			//qDebug() << frame->getSecond();
 			auto buf = player->m_pOutBuffer;
 			int sz = frame->swrFrame(player->m_pSwrCtx, buf, MAX_AUDIO_FRAME_SIZE);
 			sz = sz * player->m_spec.channels * av_get_bytes_per_sample(player->m_outSampleFmt);
@@ -284,6 +289,8 @@ void AudioSDLPlayer::fill_audio(void* para, uint8_t* stream, int len)
 			emit player->audioEnd(player->m_pBindPlayer);
 			break;
 		}
+		else if (player->m_pBindPlayer->state() != PlayState::Play)
+			break;
 	}
 
 	if (curSecond >= 0 && player->m_pBindPlayer != nullptr)

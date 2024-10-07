@@ -19,6 +19,8 @@ class FAVFrameBuffer
 public:
 	FAVFrameBuffer(size_t cap);
 
+	float fullProp()const;
+
 	bool isBeyond()const;
 
 	bool isEmpty()const;
@@ -28,6 +30,8 @@ public:
 	void pushFrame(const FrameSPtr&);
 
 	FrameSPtr popFrame();
+
+	FrameSPtr frontFrame()const;
 
 	void clear();
 
@@ -50,28 +54,32 @@ public:
 
 	virtual void videoWidgetSetHandle(VideoOpenGLPlayer*) { }
 
-	virtual bool openPath(const QString&) = 0;
-
 	virtual void readFrames() = 0;
 
 	virtual void stop();
+
+	virtual void reset()noexcept;
 
 	FrameSPtr popAudioFrame();
 
 	FrameSPtr popVideoFrame();
 
-	const FAVInfo* getInfo()const;
+	FrameSPtr frontVideoFrame();
 
-	void reset()noexcept;
+	const FAVInfo* getInfo()const;
 
 	bool decoding()const;
 
 	bool seekAble()const;
 
+	bool isStopped()const;
+
 	void addAudioProcessor(AProcessSPtr);
 
 	void setListProcessor(const std::shared_ptr<AudioListProcessor>&);
 
+signals:
+	void decInited();
 protected:
 	explicit IAVReader(QObject* p = nullptr);
 
@@ -91,7 +99,6 @@ protected:
 	mutable QMutex m_mutex;
 	QWaitCondition m_condStop;
 
-	std::unique_ptr<FAVProcessors> m_upProcs;
 	std::shared_ptr<FAVInfo> m_spInfo;
 
 	bool m_bDecoding = false;
@@ -109,11 +116,13 @@ public:
 
 	virtual void playerSetHandle(FAVPlayer*)override;
 
-	virtual bool openPath(const QString&)override;
-
 	virtual void readFrames()override;
 
+	virtual void reset()noexcept override;
+
 	void seekSecond(double);
+
+	bool openPath(const QString&);
 
 signals:
 	void durationSecondChanged(double);
@@ -129,6 +138,7 @@ private:
 
 	virtual bool chkFrameCondValid(const FFrame*)override;
 private:
+	std::unique_ptr<FAVProcessors> m_upProcs;
 
 	int64_t m_aDuration = AV_NOPTS_VALUE;
 	int64_t m_vDuration = AV_NOPTS_VALUE;
@@ -138,6 +148,27 @@ private:
 
 
 	//bool m_decoding = false;
+};
+
+class StreamManager;
+class FAVStreamReader :public IAVReader
+{
+	Q_OBJECT
+public:
+	explicit FAVStreamReader(const std::shared_ptr<StreamManager>&);
+
+	virtual void readFrames()override;
+
+	virtual void playerSetHandle(FAVPlayer*)override;
+
+public slots:
+	void seekSecond(double);
+signals:
+	void durationSecondChanged(double);
+
+	void seekFinished();
+private:
+	std::shared_ptr<StreamManager> m_spStreamManager;
 };
 
 //class FAVUrlReader : public IAVReader

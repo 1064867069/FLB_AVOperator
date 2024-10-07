@@ -44,9 +44,13 @@ public:
 public slots:
 	void procVFrames();
 
+	void recoverProc();
+
 	void stop();
 
 	void clear(bool lck = true);
+
+	void seek(double sec);
 
 	FrameSPtr updateLastFrame(const FrameSPtr & = nullptr);
 
@@ -66,10 +70,11 @@ private:
 	QList<FrameSPtr> m_listProcFrames;
 	QList<std::shared_future<void>> m_listFuture;
 
+	std::atomic<bool> m_bPaused = false;
 	double m_secondGap = 0;
 	double m_second = -1000;
 	const int m_limFut;
-	bool m_stop = true;
+	bool m_bStop = true;
 };
 
 class VideoOpenGLPlayer :public QOpenGLWidget, protected QOpenGLFunctions
@@ -89,16 +94,23 @@ public:
 
 	PlayBtmBar* getPlayBtmWidget();
 
+	void removeBtmWidget();
+
+	QRect getRectDisplay()const;
 public slots:
 	bool initProcessor();
 
 	void playFrame();
+
+	void repaintFrame();
 
 	void pause(bool);
 
 	void onAVStop();
 
 	void onPauseSeek();
+
+	void onSeekFinished();
 
 	void refreshHide();
 
@@ -114,6 +126,7 @@ protected slots:
 	void paintGL() Q_DECL_OVERRIDE;
 
 	void mouseMoveEvent(QMouseEvent* event)Q_DECL_OVERRIDE;
+	void mousePressEvent(QMouseEvent* event)Q_DECL_OVERRIDE;
 	void resizeEvent(QResizeEvent* event)Q_DECL_OVERRIDE;
 	bool eventFilter(QObject* watched, QEvent* event)Q_DECL_OVERRIDE;
 	void keyPressEvent(QKeyEvent* event)Q_DECL_OVERRIDE;
@@ -127,6 +140,12 @@ signals:
 	void videoEnd();
 
 	void needProc();
+
+	void willDestroy();
+
+	void rectChanged(const QRect&);
+
+	void curPlayFrameChanged(FrameSPtr);
 private:
 	std::shared_ptr<VideoFrameReadManager> m_spFRdManager;
 	VideoProcessList* m_pProcessList;
@@ -147,7 +166,6 @@ private:
 	QTimer m_timerFramePlay;
 
 	QTimer m_timerBtmHide;
-	qint64 m_lastMoveSecond;
 
 	// 用于OpenGL绘制图像
 	GLuint m_textureUniformY; // y纹理数据位置
@@ -161,6 +179,7 @@ private:
 	QOpenGLShaderProgram* m_pShaderProgram; // 着色器程序容器
 	GLfloat* m_vertexVertices; // 顶点矩阵
 
+	QRect m_rectDisplay;
 	float mPicIndexX; // 按比例显示情况下 图像偏移量百分比 (相对于窗口大小的)
 	float mPicIndexY; //
 	int m_width; // 视频宽度

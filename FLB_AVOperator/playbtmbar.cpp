@@ -44,6 +44,7 @@ PlayBtmBar::PlayBtmBar(FAVPlayer* player, QWidget* ps, QWidget* p) :QWidget(p), 
 PlayBtmBar::~PlayBtmBar()
 {
 	qDebug() << "底部进度条析构！";
+	delete m_pVolWidget;
 }
 
 void PlayBtmBar::initBtmBtns()

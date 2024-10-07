@@ -129,8 +129,16 @@ enum class PlayState
 	Stop
 };
 
+enum class PlayMode
+{
+	Player,
+	StreamPlayer
+};
+
 class VideoOpenGLPlayer;
 class AudioSpeedProcessor;
+class FAVFileReader;
+class StreamManager;
 class FAVPlayer :public QObject
 {
 	Q_OBJECT
@@ -139,9 +147,9 @@ public:
 
 	virtual ~FAVPlayer();
 
-
-
 	bool openFile(const QString&);
+
+	bool bindStreamManager(const std::shared_ptr<StreamManager>& spManager);
 
 	//bool openUrl(const QString&);
 
@@ -165,6 +173,8 @@ public slots:
 
 	void playCont();
 
+	void reseek();
+
 	void seekProp(double);
 
 	void seekForward();
@@ -175,7 +185,7 @@ public slots:
 
 	void onSeekFinished();
 signals:
-	void secondChanged(double);
+	void secondChanged(double)const;
 
 	void durationChanged(double);
 
@@ -183,7 +193,11 @@ signals:
 
 	void stopped();
 
+	void playStateChanged(PlayState);
+
 	void seek(double);
+
+	void seekFinished();
 
 private slots:
 
@@ -195,7 +209,7 @@ private slots:
 
 	void check_stop();
 
-	bool openPath(const QString&, const ReaderSPtr&);
+	bool openPath(const QString&, const std::shared_ptr<FAVFileReader>&);
 
 private:
 	VideoOpenGLPlayer* m_pVideoPlayer = nullptr;
@@ -206,12 +220,13 @@ private:
 	QThread m_threadDecode;
 
 	PlayState m_state = PlayState::Stop;
-	qint64 m_lastCntTime = -1;
+	mutable qint64 m_lastCntTime = -1;
 	double m_durationSecond = -1;
 	mutable double m_curSecond = 0;
 
 	bool m_bAudioEnd = true;
 	bool m_bVideoEnd = true;
+	bool m_bEndStop = true;
 
 	friend class AudioSDLPlayer;
 };
