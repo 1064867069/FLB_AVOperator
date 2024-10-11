@@ -141,12 +141,12 @@ void IAVReader::decodePacket(AVCodecContext* dec_ctx, AVPacket* pkt, AVStream* s
 
 		if (index == m_spInfo->m_aIndx)
 		{
-			qDebug() << "得到音频帧" << pf->getSecond();
+			//qDebug() << "得到音频帧" << pf->getSecond();
 			m_upAudioBuffer->pushFrame(pf);
 		}
 		else if (index == m_spInfo->m_vIndx)
 		{
-			qDebug() << "得到视频帧" << pf->getSecond();
+			//qDebug() << "得到视频帧" << pf->getSecond();
 			m_upVideoBuffer->pushFrame(pf);
 		}
 
